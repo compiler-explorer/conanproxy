@@ -18,6 +18,7 @@
   "homepage": "https://github.com/partouf/conanproxy#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "http-proxy": "^1.18.0"
+    "http-proxy": "^1.18.0",
+    "underscore": "^1.10.2"
   }
 }
