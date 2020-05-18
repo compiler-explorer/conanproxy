@@ -2,6 +2,7 @@
 const
 _ = require('underscore'),
 fs = require('fs').promises,
+fsconstants = require('fs').constants,
 express = require('express'),
 httpProxy = require('http-proxy'),
 http = require('http'),
@@ -20,6 +21,26 @@ let allLibrariesAndVersions = null;
 
 let availableLibrariesAndVersions = {};
 let availableLibraryIds = [];
+
+function getAnnotationsFilepath(library, version, buildhash) {
+  return `${conanserverroot}/data/${library}/${version}/${library}/${version}/0/package/${buildhash}/annotations.json`;
+}
+
+async function writeAnnotations(library, version, buildhash, annotations) {
+  return fs.writeFile(getAnnotationsFilepath(library, version, buildhash), JSON.stringify(annotations), 'utf8');
+}
+
+async function readAnnotations(library, version, buildhash) {
+  const filepath = getAnnotationsFilepath(library, version, buildhash);
+  try {
+    const exists = await fs.access(filepath, fsconstants.R_OK | fsconstants.W_OK);
+
+    const data = await fs.readFile(filepath, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return {};
+  }
+}
 
 async function getConanBinaries(library, version) {
 return new Promise((resolve, reject) => {
@@ -187,6 +208,7 @@ function main() {
 const proxy = newProxy();
 
 webServer
+    .use(express.json())
     .get('/hello', async (req, res) => {
         res.send('hello, world!');
     })
@@ -202,6 +224,15 @@ webServer
     .get('/binaries/:libraryid/:version', async (req, res) => {
         const all = await getConanBinaries(req.params.libraryid, req.params.version);
         res.send(all);
+    })
+    .get('/annotations/:libraryid/:version/:buildhash', async (req, res) => {
+        const annotations = await readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
+        res.send(annotations);
+    })
+    .post('/annotations/:libraryid/:version/:buildhash', async (req, res) => {
+        const annotations = req.body;
+        await writeAnnotations(req.params.libraryid, req.params.version, req.params.buildhash, annotations);
+        res.send("OK");
     })
     .use('/v1', (req, res, next) => {
         req.url = `/v1${req.url}`;
