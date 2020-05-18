@@ -13,7 +13,7 @@ const
 const conanserverurl = 'http://127.0.0.1:9300';
 const ceserverurl = 'https://godbolt.org'
 
-const conanserverroot = "/home/partouf/.conan_server";
+const conanserverroot = "/home/ce/.conan_server";
 
 let compilernames = null;
 let allLibrariesAndVersions = null;
@@ -23,8 +23,8 @@ let availableLibraryIds = [];
 
 async function getConanBinaries(library, version) {
     return new Promise((resolve, reject) => {
-        const filteredlibrary = library.match(/([\w_-]*)/i)[1];
-        const filteredversion = version.match(/([\w0-9_\.]*)/i)[1];
+        const filteredlibrary = library.match(/([\w_\-]*)/i)[1];
+        const filteredversion = version.match(/([\w0-9_\-\.]*)/i)[1];
         if (filteredlibrary && filteredversion) {
             const libandver = `${filteredlibrary}/${filteredversion}`;
 
@@ -150,19 +150,23 @@ function newProxy() {
     return proxy;
 }
 
-async function refreshConanLibraries() {
+async function refreshConanLibraries(forceall) {
     availableLibraryIds = [];
     availableLibrariesAndVersions = {};
+    const reDot = new RegExp(/\./, 'g');
 
     fs.opendir(`${conanserverroot}/data`).then(async (libraryDirs) => {
         for await (const libraryDir of libraryDirs) {
             const libraryId = libraryDir.name;
             availableLibraryIds.push(libraryId);
-            const ceLib = _.find(allLibrariesAndVersions, (lib) => lib.id === libraryId);
+            let ceLib = _.find(allLibrariesAndVersions, (lib) => lib.id === libraryId);
+            if (!ceLib && forceall) ceLib = {name: libraryId, versions: {}};
             if (ceLib) {
                 fs.opendir(`${conanserverroot}/data/${libraryId}`).then(async (versionDirs) => {
                     for await (const versionDir of versionDirs) {
-                        const ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name);
+                        let ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name);
+                        if (!ceVersion && forceall) ceVersion = {id: versionDir.name.replace(reDot, '')};
+			    console.log(ceVersion);
                         if (ceVersion) {
                             if (!availableLibrariesAndVersions[libraryId]) {
                                 availableLibrariesAndVersions[libraryId] = {
@@ -187,6 +191,12 @@ function main() {
         .get('/hello', async (req, res) => {
             res.send('hello, world!');
         })
+	.get('/reinitialize', async (req, res) => {
+            await refreshCECompilers();
+            await refreshCELibraries();
+            await refreshConanLibraries(true);
+	    res.send('done');
+	})
         .get('/libraries', async (req, res) => {
             res.send(availableLibrariesAndVersions);
         })
@@ -210,4 +220,6 @@ function main() {
         .listen(10240);
 }
 
-refreshCECompilers().then(refreshCELibraries).then(refreshConanLibraries).then(main);
+refreshCECompilers().then(refreshCELibraries).then(() => {
+  return refreshConanLibraries(true);
+}).then(main);
