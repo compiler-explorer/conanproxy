@@ -69,7 +69,11 @@
 
                 info.possibleCombinations.forEach(combination => {
                     const td = $("<th class='binmatrixheaderoption' scope='col' />");
-                    td.html(combination.arch + "<br />" + combination.build_type + "<br />" + combination.flagcollection);
+                    td.append($("<div />").addClass("comboarch").html(combination.arch));
+                    td.append($("<div />").addClass("combobuildtype").html(combination.build_type));
+                    td.append($("<div />").addClass("comboflags").html(combination.flagcollection));
+                    td.append($("<div />").addClass("combostdver").html(combination.stdver));
+
                     header.append(td);
                 });
 
@@ -77,6 +81,7 @@
                     const compiler = info.perCompiler[compilerId];
                     const row = $("<tr class='binmatrixrow'><th class='compilername' scope='row' /></tr>");
                     row.find('.compilername').html(compiler.name);
+                    row.find('.compilername').data('compilerid', compilerId);
 
                     for (let idxCombination = 0; idxCombination < info.possibleCombinations.length; idxCombination++) {
                         const tdCombinationYesNo = $("<td class='binmatrixheaderoptionyesno' />");
