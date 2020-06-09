@@ -212,12 +212,15 @@ webServer
     .get('/hello', async (req, res) => {
         res.send('hello, world!');
     })
-	.get('/reinitialize', async (req, res) => {
-            await refreshCECompilers();
-            await refreshCELibraries();
-            await refreshConanLibraries(true);
-	    res.send('done');
-	})
+    .get('/healthcheck', async (req, res) => {
+        res.send('OK');
+    })
+    .get('/reinitialize', async (req, res) => {
+        await refreshCECompilers();
+        await refreshCELibraries();
+        await refreshConanLibraries(true);
+	res.send('done');
+    })
     .get('/libraries', async (req, res) => {
         res.send(availableLibrariesAndVersions);
     })
