@@ -1,15 +1,15 @@
 
 const
-_ = require('underscore'),
-fs = require('fs').promises,
-fsconstants = require('fs').constants,
-express = require('express'),
-httpProxy = require('http-proxy'),
-http = require('http'),
-https = require('https');
+    _ = require('underscore'),
+    fs = require('fs').promises,
+    fsconstants = require('fs').constants,
+    express = require('express'),
+    httpProxy = require('http-proxy'),
+    http = require('http'),
+    https = require('https');
 
 const
-webServer = express();
+    webServer = express();
 
 const conanserverurl = 'http://127.0.0.1:9300';
 const ceserverurl = 'https://godbolt.org'
@@ -22,237 +22,265 @@ let allLibrariesAndVersions = null;
 let availableLibrariesAndVersions = {};
 let availableLibraryIds = [];
 
+let modifiedDt = null;
+
 function getAnnotationsFilepath(library, version, buildhash) {
-  return `${conanserverroot}/data/${library}/${version}/${library}/${version}/0/package/${buildhash}/annotations.json`;
+    return `${conanserverroot}/data/${library}/${version}/${library}/${version}/0/package/${buildhash}/annotations.json`;
 }
 
 async function writeAnnotations(library, version, buildhash, annotations) {
-  return fs.writeFile(getAnnotationsFilepath(library, version, buildhash), JSON.stringify(annotations), 'utf8');
+    return fs.writeFile(getAnnotationsFilepath(library, version, buildhash), JSON.stringify(annotations), 'utf8');
 }
 
 async function readAnnotations(library, version, buildhash) {
-  const filepath = getAnnotationsFilepath(library, version, buildhash);
-  try {
-    const exists = await fs.access(filepath, fsconstants.R_OK | fsconstants.W_OK);
+    const filepath = getAnnotationsFilepath(library, version, buildhash);
+    try {
+        const exists = await fs.access(filepath, fsconstants.R_OK | fsconstants.W_OK);
 
-    const data = await fs.readFile(filepath, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
+        const data = await fs.readFile(filepath, 'utf8');
+        return JSON.parse(data);
+    } catch {
+        return {};
+    }
 }
 
 async function getConanBinaries(library, version) {
-return new Promise((resolve, reject) => {
-    const filteredlibrary = library.match(/([\w_\-]*)/i)[1];
-    const filteredversion = version.match(/([\w0-9_\-\.]*)/i)[1];
-    if (filteredlibrary && filteredversion) {
-        const libandver = `${filteredlibrary}/${filteredversion}`;
+    return new Promise((resolve, reject) => {
+        const filteredlibrary = library.match(/([\w_\-]*)/i)[1];
+        const filteredversion = version.match(/([\w0-9_\-\.]*)/i)[1];
+        if (filteredlibrary && filteredversion) {
+            const libandver = `${filteredlibrary}/${filteredversion}`;
 
-        const url = `${conanserverurl}/v1/conans/${libandver}/${libandver}/search`;
-        console.log('calling ' + url);
-        http.get(url, (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => data += chunk);
-            resp.on('end', () => {
-                let jsdata = null;
-                try {
-                    jsdata = JSON.parse(data);
-                } catch {
-                    resolve({});
-                    return;
-                }
-
-                const setPerCompiler = {};
-                const setOfCombinations = [];
-                _.each(jsdata, (obj) => {
-                    const compilerid = obj.settings['compiler.version'];
-                    const compilername = compilernames[compilerid];
-                    const relevantSettings = _.omit(obj.settings, (val, key) => key.indexOf('compiler') === 0);
-                    const settingsWithoutCompiler = JSON.stringify(relevantSettings);
-
-                    let idx = setOfCombinations.indexOf(settingsWithoutCompiler);
-                    if (idx === -1) {
-                        idx = setOfCombinations.length;
-                        setOfCombinations.push(settingsWithoutCompiler);
+            const url = `${conanserverurl}/v1/conans/${libandver}/${libandver}/search`;
+            console.log('calling ' + url);
+            http.get(url, (resp) => {
+                let data = '';
+                resp.on('data', (chunk) => data += chunk);
+                resp.on('end', () => {
+                    let jsdata = null;
+                    try {
+                        jsdata = JSON.parse(data);
+                    } catch {
+                        resolve({});
+                        return;
                     }
 
-                    if (!setPerCompiler[compilerid]) {
-                        setPerCompiler[compilerid] = {
-                            name: compilername,
-                            combinations: []
-                        };
-                    }
+                    const setPerCompiler = {};
+                    const setOfCombinations = [];
+                    _.each(jsdata, (obj) => {
+                        const compilerid = obj.settings['compiler.version'];
+                        const compilername = compilernames[compilerid];
+                        const relevantSettings = _.omit(obj.settings, (val, key) => key.indexOf('compiler') === 0);
+                        const settingsWithoutCompiler = JSON.stringify(relevantSettings);
 
-                    setPerCompiler[compilerid].combinations.push(idx);
+                        let idx = setOfCombinations.indexOf(settingsWithoutCompiler);
+                        if (idx === -1) {
+                            idx = setOfCombinations.length;
+                            setOfCombinations.push(settingsWithoutCompiler);
+                        }
+
+                        if (!setPerCompiler[compilerid]) {
+                            setPerCompiler[compilerid] = {
+                                name: compilername,
+                                combinations: []
+                            };
+                        }
+
+                        setPerCompiler[compilerid].combinations.push(idx);
+                    })
+
+                    const orderedByCompilerId = {};
+                    Object.keys(setPerCompiler).sort().forEach((key) => {
+                        orderedByCompilerId[key] = setPerCompiler[key];
+                    });
+
+                    resolve({
+                        possibleCombinations: _.map(setOfCombinations, (combo) => JSON.parse(combo)),
+                        perCompiler: orderedByCompilerId
+                    });
                 })
-
-                const orderedByCompilerId = {};
-                Object.keys(setPerCompiler).sort().forEach((key) => {
-                    orderedByCompilerId[key] = setPerCompiler[key];
-                });
-
-                resolve({
-                    possibleCombinations: _.map(setOfCombinations, (combo) => JSON.parse(combo)),
-                    perCompiler: orderedByCompilerId
-                });
-            })
-        }).on('error', (err) => {
-            reject(err);
-        });
-    } else {
-        reject('Not a valid library or version');
-    }
-});
+            }).on('error', (err) => {
+                reject(err);
+            });
+        } else {
+            reject('Not a valid library or version');
+        }
+    });
 }
 
 async function refreshCECompilers() {
-return new Promise((resolve, reject) => {
-    https.get(`${ceserverurl}/api/compilers`, {headers: {'Accept': 'application/json'}}, (resp) => {
-        let data = '';
-        resp.on('data', (chunk) => data += chunk);
-        resp.on('end', () => {
-            const jsdata = JSON.parse(data);
-            const compilers = {};
-            _.each(jsdata, (obj) => {
-                compilers[obj.id] = obj.name;
-            });
-            compilernames = compilers
-            resolve(true);
-        })
-    }).on('error', (err) => {
-        console.error(err);
-        reject(err);
+    return new Promise((resolve, reject) => {
+        https.get(`${ceserverurl}/api/compilers`, { headers: { 'Accept': 'application/json' } }, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                const jsdata = JSON.parse(data);
+                const compilers = {};
+                _.each(jsdata, (obj) => {
+                    compilers[obj.id] = obj.name;
+                });
+                compilernames = compilers
+                resolve(true);
+            })
+        }).on('error', (err) => {
+            console.error(err);
+            reject(err);
+        });
     });
-});
 }
 
 async function refreshCELibraries() {
-return new Promise((resolve, reject) => {
-    https.get(`${ceserverurl}/api/libraries/c++`, {headers: {'Accept': 'application/json'}}, (resp) => {
-        let data = '';
-        resp.on('data', (chunk) => data += chunk);
-        resp.on('end', () => {
-            allLibrariesAndVersions = JSON.parse(data);
-            resolve(true);
-        })
-    }).on('error', (err) => {
-        console.error(err);
-        reject(err);
+    return new Promise((resolve, reject) => {
+        https.get(`${ceserverurl}/api/libraries/c++`, { headers: { 'Accept': 'application/json' } }, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                allLibrariesAndVersions = JSON.parse(data);
+                resolve(true);
+            })
+        }).on('error', (err) => {
+            console.error(err);
+            reject(err);
+        });
     });
-});
 }
 
 function newProxy() {
-const proxy = httpProxy.createProxyServer({});
+    const proxy = httpProxy.createProxyServer({});
 
-proxy.on('proxyReq', function (proxyReq, req) {
-    if (!req.body || !Object.keys(req.body).length) {
-        return;
-    }
+    proxy.on('proxyReq', function (proxyReq, req) {
+        if (!req.body || !Object.keys(req.body).length) {
+            return;
+        }
 
-    const contentType = proxyReq.getHeader('Content-Type');
-    let bodyData;
+        const contentType = proxyReq.getHeader('Content-Type');
+        let bodyData;
 
-    if (contentType === 'application/json') {
-        bodyData = JSON.stringify(req.body);
-    }
+        if (contentType === 'application/json') {
+            bodyData = JSON.stringify(req.body);
+        }
 
-    if (contentType === 'application/x-www-form-urlencoded') {
-        bodyData = req.body;
-    }
+        if (contentType === 'application/x-www-form-urlencoded') {
+            bodyData = req.body;
+        }
 
-    if (bodyData) {
-        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-        proxyReq.write(bodyData);
-    }
-});
+        if (bodyData) {
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            proxyReq.write(bodyData);
+        }
+    });
 
-return proxy;
+    return proxy;
 }
 
 async function refreshConanLibraries(forceall) {
-availableLibraryIds = [];
-availableLibrariesAndVersions = {};
+    availableLibraryIds = [];
+    availableLibrariesAndVersions = {};
     const reDot = new RegExp(/\./, 'g');
 
-fs.opendir(`${conanserverroot}/data`).then(async (libraryDirs) => {
-    for await (const libraryDir of libraryDirs) {
-        const libraryId = libraryDir.name;
-        availableLibraryIds.push(libraryId);
-        let ceLib = _.find(allLibrariesAndVersions, (lib) => lib.id === libraryId);
-        if (!ceLib && forceall) ceLib = {name: libraryId, versions: {}};
-        if (ceLib) {
-            fs.opendir(`${conanserverroot}/data/${libraryId}`).then(async (versionDirs) => {
-                for await (const versionDir of versionDirs) {
-                    let ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name);
-                    if (!ceVersion && forceall) ceVersion = {id: versionDir.name.replace(reDot, '')};
-                    if (ceVersion) {
-                        if (!availableLibrariesAndVersions[libraryId]) {
-                            availableLibrariesAndVersions[libraryId] = {
-                                name: ceLib.name,
-                                versions: {}
-                            };
+    fs.opendir(`${conanserverroot}/data`).then(async (libraryDirs) => {
+        for await (const libraryDir of libraryDirs) {
+            const libraryId = libraryDir.name;
+            availableLibraryIds.push(libraryId);
+            let ceLib = _.find(allLibrariesAndVersions, (lib) => lib.id === libraryId);
+            if (!ceLib && forceall) ceLib = { name: libraryId, versions: {} };
+            if (ceLib) {
+                fs.opendir(`${conanserverroot}/data/${libraryId}`).then(async (versionDirs) => {
+                    for await (const versionDir of versionDirs) {
+                        let ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name);
+                        if (!ceVersion && forceall) ceVersion = { id: versionDir.name.replace(reDot, '') };
+                        if (ceVersion) {
+                            if (!availableLibrariesAndVersions[libraryId]) {
+                                availableLibrariesAndVersions[libraryId] = {
+                                    name: ceLib.name,
+                                    versions: {}
+                                };
+                            }
+
+                            availableLibrariesAndVersions[libraryId].versions[ceVersion.id] = versionDir.name;
                         }
-            
-                        availableLibrariesAndVersions[libraryId].versions[ceVersion.id] = versionDir.name;
                     }
-                }
-            });
+                });
+            }
         }
-    }
-})
+    })
+}
+
+function nocache(req, res, next) {
+    res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.header('Expires', '-1');
+    res.header('Pragma', 'no-cache');
+    next();
+}
+
+function expireshourly(req, res, next) {
+    res.header('Cache-Control', 'max-age=3600, must-revalidate');
+    next();
+}
+
+function libraryexpireheaders(req, res, next) {
+    res.header('Cache-Control', 'max-age=3600, must-revalidate');
+    res.header('Last-Modified', modifiedDt);
+    next();
 }
 
 function main() {
-const proxy = newProxy();
+    modifiedDt = new Date();
+    const proxy = newProxy();
 
-webServer
-    .use(express.json())
-    .get('/hello', async (req, res) => {
-        res.send('hello, world!');
-    })
-    .get('/healthcheck', async (req, res) => {
-        res.send('OK');
-    })
-    .get('/reinitialize', async (req, res) => {
-        await refreshCECompilers();
-        await refreshCELibraries();
-        await refreshConanLibraries(true);
-	res.send('done');
-    })
-    .get('/libraries', async (req, res) => {
-        res.send(availableLibrariesAndVersions);
-    })
-    .get('/binaries/:libraryid/:version', async (req, res) => {
-        const all = await getConanBinaries(req.params.libraryid, req.params.version);
-        res.send(all);
-    })
-    .get('/annotations/:libraryid/:version/:buildhash', async (req, res) => {
-        const annotations = await readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
-        res.send(annotations);
-    })
-    .post('/annotations/:libraryid/:version/:buildhash', async (req, res) => {
-        const annotations = req.body;
-        await writeAnnotations(req.params.libraryid, req.params.version, req.params.buildhash, annotations);
-        res.send("OK");
-    })
-    .use('/v1', (req, res, next) => {
-        req.url = `/v1${req.url}`;
-        proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
-            next(e);
-        });
-    })
-    .use('/v2', (req, res, next) => {
-        req.url = `/v2${req.url}`;
-        proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
-            next(e);
-        });
-    })
-    .use(express.static('html'))
-    .listen(1080);
+    webServer
+        .use(express.json())
+        .get('/hello', async (req, res) => {
+            res.send('hello, world!');
+        })
+        .get('/healthcheck', nocache, async (req, res) => {
+            res.send('OK');
+        })
+        .get('/reinitialize', nocache, async (req, res) => {
+            await refreshCECompilers();
+            await refreshCELibraries();
+            await refreshConanLibraries(true);
+            modifiedDt = new Date();
+            res.send('done');
+        })
+        .options('/libraries', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/libraries', libraryexpireheaders, async (req, res) => {
+            res.send(availableLibrariesAndVersions);
+        })
+        .options('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
+            const all = await getConanBinaries(req.params.libraryid, req.params.version);
+            res.send(all);
+        })
+        .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
+            const annotations = await readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
+            res.send(annotations);
+        })
+        .post('/annotations/:libraryid/:version/:buildhash', nocache, async (req, res) => {
+            const annotations = req.body;
+            await writeAnnotations(req.params.libraryid, req.params.version, req.params.buildhash, annotations);
+            res.send("OK");
+        })
+        .use('/v1', (req, res, next) => {
+            req.url = `/v1${req.url}`;
+            proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
+                next(e);
+            });
+        })
+        .use('/v2', (req, res, next) => {
+            req.url = `/v2${req.url}`;
+            proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
+                next(e);
+            });
+        })
+        .use(express.static('html'))
+        .listen(1080);
 }
 
 refreshCECompilers().then(refreshCELibraries).then(() => {
-  return refreshConanLibraries(true);
+    return refreshConanLibraries(true);
 }).then(main);
