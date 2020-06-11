@@ -250,7 +250,7 @@ webServer
         });
     })
     .use(express.static('html'))
-    .listen(81);
+    .listen(80);
 }
 
 refreshCECompilers().then(refreshCELibraries).then(() => {
