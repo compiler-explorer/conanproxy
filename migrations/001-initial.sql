@@ -7,12 +7,13 @@ CREATE TABLE latest (
     library_version TEXT NOT NULL,
     compiler TEXT NOT NULL,
     compiler_version TEXT NOT NULL,
-    build_dt INTEGER NOT NULL,
-    compiler_libcxx TEXT NOT NULL,
+    libcxx TEXT NOT NULL,
+    arch TEXT NOT NULL,
     compiler_flags TEXT NOT NULL,
-    succes INTEGER NOT NULL,
+    build_dt INTEGER NOT NULL,
+    success INTEGER NOT NULL,
     logging TEXT,
-    PRIMARY KEY (library,compiler,library_version,compiler_version,compiler_libcxx,compiler_flags)
+    PRIMARY KEY (library,compiler,library_version,compiler_version,arch,libcxx,compiler_flags)
 );
 
 --------------------------------------------------------------------------------

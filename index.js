@@ -328,7 +328,8 @@ function main() {
                 data.library_version,
                 data.compiler,
                 data.compiler_version,
-                data.compiler_libcxx,
+                data.arch,
+                data.libcxx,
                 data.compiler_flags,
                 data.logging
             );
@@ -341,7 +342,8 @@ function main() {
                 data.library_version,
                 data.compiler,
                 data.compiler_version,
-                data.compiler_libcxx,
+                data.arch,
+                data.libcxx,
                 data.compiler_flags,
                 data.logging
             );
