@@ -2,8 +2,11 @@
 const
     _ = require('underscore'),
     fs = require('fs').promises,
-    fsconstants = require('fs').constants,
+    { BuildAnnotations } = require('./build-annotations'),
+    { BuildLogging } = require('./build-logging'),
     express = require('express'),
+    expressjwt = require('express-jwt'),
+    jwt = require('jsonwebtoken'),
     httpProxy = require('http-proxy'),
     http = require('http'),
     https = require('https');
@@ -14,7 +17,8 @@ const
 const conanserverurl = 'http://127.0.0.1:9300';
 const ceserverurl = 'https://godbolt.org';
 
-const conanserverroot = "/home/ce/.conan_server";
+const userhome = "/home/partouf";
+const conanserverroot = userhome + "/.conan_server";
 
 let compilernames = null;
 let allLibrariesAndVersions = null;
@@ -24,25 +28,10 @@ let availableLibraryIds = [];
 
 let modifiedDt = null;
 
-function getAnnotationsFilepath(library, version, buildhash) {
-    return `${conanserverroot}/data/${library}/${version}/${library}/${version}/0/package/${buildhash}/annotations.json`;
-}
-
-async function writeAnnotations(library, version, buildhash, annotations) {
-    return fs.writeFile(getAnnotationsFilepath(library, version, buildhash), JSON.stringify(annotations), 'utf8');
-}
-
-async function readAnnotations(library, version, buildhash) {
-    const filepath = getAnnotationsFilepath(library, version, buildhash);
-    try {
-        await fs.access(filepath, fsconstants.R_OK | fsconstants.W_OK);
-
-        const data = await fs.readFile(filepath, 'utf8');
-        return JSON.parse(data);
-    } catch(e) {
-        return {};
-    }
-}
+const annotations = new BuildAnnotations(conanserverroot);
+const buildlogging = new BuildLogging(userhome + "/buildlogs.db");
+const jwtsecret = process.env.CESECRET;
+const cepassword = process.env.CEPASSWORD;
 
 async function getConanBinaries(library, version) {
     return new Promise((resolve, reject) => {
@@ -60,7 +49,7 @@ async function getConanBinaries(library, version) {
                     let jsdata = null;
                     try {
                         jsdata = JSON.parse(data);
-                    } catch(e) {
+                    } catch (e) {
                         resolve({});
                         return;
                     }
@@ -225,14 +214,76 @@ function libraryexpireheaders(req, res, next) {
     next();
 }
 
+async function login(password) {
+    return new Promise((resolve, reject) => {
+        if (password === cepassword) {
+            resolve({
+                token: jwt.sign({
+                    sub: {
+                        admin: true,
+                        logintime: new Date().toUTCString()
+                    }
+                }, jwtsecret, {
+                    expiresIn: '12h'
+                })
+            });
+        } else {
+            reject('Invalid login');
+        }
+    });
+}
+
 function main() {
     modifiedDt = new Date();
     const proxy = newProxy();
 
     webServer
         .use(express.json())
-        .get('/hello', async (req, res) => {
-            res.send('hello, world!');
+        .use(expressjwt({
+            secret: jwtsecret
+        }).unless({
+            path: [
+                {
+                    url: '/login',
+                    methods: ['POST']
+                },
+                {
+                    url: '/healthcheck',
+                    methods: ['GET']
+                },
+                {
+                    url: '/reinitialize',
+                    methods: ['GET']
+                },
+                {
+                    url: '/reinitialize',
+                    methods: ['GET']
+                },
+                {
+                    url: '/libraries',
+                    methods: ['OPTIONS', 'GET']
+                },
+                {
+                    url: '/binaries',
+                    methods: ['OPTIONS', 'GET']
+                },
+                {
+                    url: '/v1',
+                    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+                },
+                {
+                    url: '/v2',
+                    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+                }
+            ]
+        }))
+        .post('/login', nocache, async (req, res) => {
+            try {
+                const resultbody = await login(req.body.password);
+                res.send(resultbody);
+            } catch (e) {
+                res.sendStatus(403);
+            }
         })
         .get('/healthcheck', nocache, async (req, res) => {
             res.send('OK');
@@ -258,12 +309,42 @@ function main() {
             res.send(all);
         })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
-            const annotations = await readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
-            res.send(annotations);
+            const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
+            res.send(data);
         })
         .post('/annotations/:libraryid/:version/:buildhash', nocache, async (req, res) => {
-            const annotations = req.body;
-            await writeAnnotations(req.params.libraryid, req.params.version, req.params.buildhash, annotations);
+            const data = req.body;
+            try {
+                await annotations.writeAnnotations(req.params.libraryid, req.params.version, req.params.buildhash, data);
+                res.send("OK");
+            } catch(e) {
+                res.sendStatus(404);
+            }
+        })
+        .post('/buildfailed', nocache, async (req, res) => {
+            const data = req.body;
+            buildlogging.setBuildFailed(
+                data.library,
+                data.library_version,
+                data.compiler,
+                data.compiler_version,
+                data.compiler_libcxx,
+                data.compiler_flags,
+                data.logging
+            );
+            res.send("OK");
+        })
+        .post('/buildsucces', nocache, async (req, res) => {
+            const data = req.body;
+            buildlogging.setBuildFixed(
+                data.library,
+                data.library_version,
+                data.compiler,
+                data.compiler_version,
+                data.compiler_libcxx,
+                data.compiler_flags,
+                data.logging
+            );
             res.send("OK");
         })
         .use('/v1', (req, res, next) => {
@@ -282,6 +363,6 @@ function main() {
         .listen(1080);
 }
 
-refreshCECompilers().then(refreshCELibraries).then(() => {
+buildlogging.connect().then(refreshCECompilers).then(refreshCELibraries).then(() => {
     return refreshConanLibraries(true);
 }).then(main);

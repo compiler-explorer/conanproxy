@@ -4,22 +4,29 @@
   "description": "Nodejs proxy in front of conanserver",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "lint": "npx eslint index.js --fix",
+    "devtest": "cross-env CESECRET=123456789 CEPASSWORD=1234 node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/partouf/conanproxy.git"
+    "url": "git+https://github.com/compiler-explorer/conanproxy.git"
   },
   "author": "",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/partouf/conanproxy/issues"
+    "url": "https://github.com/compiler-explorer/conanproxy/issues"
   },
-  "homepage": "https://github.com/partouf/conanproxy#readme",
+  "homepage": "https://github.com/compiler-explorer/conanproxy#readme",
   "dependencies": {
+    "cross-env": "^7.0.2",
     "express": "^4.17.1",
+    "express-jwt": "^5.3.3",
     "http-proxy": "^1.18.1",
+    "sql-template-strings": "^2.2.2",
+    "sqlite": "^4.0.11",
+    "sqlite3": "^4.2.0",
     "supervisor": "^0.12.0",
     "underscore": "^1.10.2"
   },
