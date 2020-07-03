@@ -314,7 +314,7 @@ function main() {
                 data.compiler_version,
                 data.arch,
                 data.libcxx,
-                data.compiler_flags,
+                data.flagcollection,
                 data.logging
             );
             res.send("OK");

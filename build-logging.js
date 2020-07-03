@@ -43,7 +43,6 @@ class BuildLogging {
             values
             ( ${library}, ${library_version}, ${compiler}, ${compiler_version}, ${arch}, ${libcxx}, ${compiler_flags}, 0, ${now}, ${logging});`;
 
-        console.info(query);
         await this.connection.exec(query);
     }
 
