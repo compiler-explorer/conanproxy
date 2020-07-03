@@ -224,6 +224,7 @@ async function login(password) {
                         logintime: new Date().toUTCString()
                     }
                 }, jwtsecret, {
+                    algorithm: 'RS256',
                     expiresIn: '12h'
                 })
             });
