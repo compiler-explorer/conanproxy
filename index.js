@@ -319,7 +319,7 @@ function main() {
             );
             res.send("OK");
         })
-        .post('/buildsucces', nocache, async (req, res) => {
+        .post('/buildsuccess', nocache, async (req, res) => {
             const data = req.body;
             buildlogging.setBuildFixed(
                 data.library,
