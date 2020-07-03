@@ -37,7 +37,7 @@ class BuildLogging {
     }
 
     async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging) {
-        const now = getCurrentDateStr();
+        const now = this.getCurrentDateStr();
         await this.connection.exec(
             SQL`replace into latest
                 ( library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging)
