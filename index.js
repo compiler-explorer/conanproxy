@@ -224,7 +224,7 @@ async function login(password) {
                         logintime: new Date().toUTCString()
                     }
                 }, jwtsecret, {
-                    algorithm: 'RS256',
+                    algorithm: 'HS256',
                     expiresIn: '12h'
                 })
             });
@@ -242,7 +242,7 @@ function main() {
         .use(express.json())
         .use(expressjwt({
             secret: jwtsecret,
-            algorithms: ['RS256']
+            algorithms: ['HS256']
         }).unless({
             path: [
                 '/libraries.html',
@@ -265,6 +265,7 @@ function main() {
                 const resultbody = await login(req.body.password);
                 res.send(resultbody);
             } catch (e) {
+                console.error(e);
                 res.sendStatus(403);
             }
         })
