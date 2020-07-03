@@ -17,7 +17,7 @@ const
 const conanserverurl = 'http://127.0.0.1:9300';
 const ceserverurl = 'https://godbolt.org';
 
-const userhome = "/home/partouf";
+const userhome = "/home/ce";
 const conanserverroot = userhome + "/.conan_server";
 
 let compilernames = null;
@@ -240,41 +240,23 @@ function main() {
     webServer
         .use(express.json())
         .use(expressjwt({
-            secret: jwtsecret
+            secret: jwtsecret,
+            algorithms: ['RS256']
         }).unless({
             path: [
+                '/libraries.html',
+                '/favicon.ico',
+                '/login',
+                '/healthcheck',
+                '/reinitialize',
+                '/libraries',
+                /^\/binaries\/.*/,
                 {
-                    url: '/login',
-                    methods: ['POST']
+                    url: /^\/annotations\/.*/,
+                    methods: ['GET', 'OPTIONS']
                 },
-                {
-                    url: '/healthcheck',
-                    methods: ['GET']
-                },
-                {
-                    url: '/reinitialize',
-                    methods: ['GET']
-                },
-                {
-                    url: '/reinitialize',
-                    methods: ['GET']
-                },
-                {
-                    url: '/libraries',
-                    methods: ['OPTIONS', 'GET']
-                },
-                {
-                    url: '/binaries',
-                    methods: ['OPTIONS', 'GET']
-                },
-                {
-                    url: '/v1',
-                    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-                },
-                {
-                    url: '/v2',
-                    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-                }
+                /^\/v1\/.*/,
+                /^\/v2\/.*/,
             ]
         }))
         .post('/login', nocache, async (req, res) => {
