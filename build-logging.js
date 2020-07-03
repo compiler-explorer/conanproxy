@@ -38,11 +38,13 @@ class BuildLogging {
 
     async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging) {
         const now = this.getCurrentDateStr();
-        await this.connection.exec(
-            SQL`replace into latest
-                ( library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging)
-                values
-                ( ${library}, ${library_version}, ${compiler}, ${compiler_version}, ${arch}, ${libcxx}, ${compiler_flags}, 0, ${now}, ${logging});`);
+        const query = SQL`replace into latest
+            ( library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging)
+            values
+            ( ${library}, ${library_version}, ${compiler}, ${compiler_version}, ${arch}, ${libcxx}, ${compiler_flags}, 0, ${now}, ${logging});`;
+
+        console.info(query);
+        await this.connection.exec(query);
     }
 
     async listBuilds() {
