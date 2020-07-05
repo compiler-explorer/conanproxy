@@ -13,7 +13,7 @@ class BuildLogging {
         this.connection = await open({
             filename: this.databasepath,
             driver: sqlite3.Database
-          });
+        });
         // this.connection.on('trace', (data) => {
         //     console.log(data);
         // });
@@ -77,14 +77,14 @@ class BuildLogging {
 
     async listBuilds() {
         const results = await this.connection.all(
-            SQL`select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt
-                 from latest
-                order by library asc, library_version asc, compiler asc, compiler_version asc`);
+            `select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt
+               from latest
+              order by library asc, library_version asc, compiler asc, compiler_version asc`);
 
         return results;
     }
 
-    async getLogging(library, library_version, compiler, compiler_version, libcxx, compiler_flags) {
+    async getLogging(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags) {
         const stmt = await this.connection.prepare(
             `select logging
                  from latest
@@ -110,7 +110,49 @@ class BuildLogging {
 
         return results;
     }
-};
+
+    async getCompilerFailureRates() {
+        const stmt = await this.connection.prepare(
+            `select compiler_version, count(*) failures
+            from latest l2 
+            where success=0
+            group by compiler_version`);
+        
+        const results = await stmt.all();
+        return results;
+    }
+
+    async hasFailedBefore(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags) {
+        const stmt = await this.connection.prepare(
+            `select success
+                 from latest
+                where library=@library
+                  and library_version=@library_version
+                  and compiler=@compiler
+                  and compiler_version=@compiler_version
+                  and arch=@arch
+                  and libcxx=@libcxx
+                  and compiler_flags=@compiler_flags`
+        );
+
+        await stmt.bind({
+            '@library': library,
+            '@library_version': library_version,
+            '@compiler': compiler,
+            '@compiler_version': compiler_version,
+            '@arch': arch,
+            '@libcxx': libcxx,
+            '@compiler_flags': compiler_flags
+        });
+
+        const results = await stmt.all();
+        if (results.length > 0) {
+            return results[0].success === 0;
+        } else {
+            return false;
+        }
+    }
+}
 
 
 module.exports = {

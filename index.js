@@ -333,6 +333,25 @@ function main() {
             );
             res.send("OK");
         })
+        .get('/compilerfailurerates', expireshourly, async (req, res) => {
+            const failurerates = await buildlogging.getCompilerFailureRates();
+            res.send(failurerates);
+        })
+        .get('/hasfailedbefore', expireshourly, async (req, res) => {
+            const data = req.body;
+            const answer = await buildlogging.hasFailedBefore(
+                data.library,
+                data.library_version,
+                data.compiler,
+                data.compiler_version,
+                data.arch,
+                data.libcxx,
+                data.flagcollection
+            );
+            res.send({
+                response: answer
+            });
+        })
         .use('/v1', (req, res, next) => {
             req.url = `/v1${req.url}`;
             proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
