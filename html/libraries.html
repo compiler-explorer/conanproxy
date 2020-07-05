@@ -4,7 +4,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     <style>
         a.libraryversion {
             padding-right: 10px;
@@ -18,11 +17,15 @@
         .combostdlibold {
             color: gray;
         }
+        body div.popover {
+            max-width: 400px;
+        }
     </style>
     <script language="Javascript">
+        const urlprefix = "";
         function refreshLibraries() {
             const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/libraries');
+            xhr.open('GET', urlprefix + '/libraries');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.onload = () => {
                 const info = JSON.parse(xhr.responseText);
@@ -56,9 +59,33 @@
             xhr.send();
         }
 
-        function refreshMatrix(libraryId, libraryVersion, matrixNode) {
+        function requestAnnotations(libraryid, version, who) {
+            const buildhash = who.parent().data('hash');
             const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/binaries/' + libraryId + '/' + libraryVersion);
+            xhr.open('GET', urlprefix + '/annotations/' + libraryid + '/' + version + '/' + buildhash);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                who.data('annotations', info);
+
+                let content = "";
+                content += "buildhash: " + buildhash + "<br />";
+                Object.keys(info).forEach(key => {
+                    content += key + ": " + info[key] + "<br />";
+                });
+
+                who.data('content', content);
+
+                who.popover('toggle');
+            };
+            xhr.send();
+        }
+
+        function refreshMatrix(libraryId, libraryVersion, matrixNode) {
+            $("button.moreinfobtn").popover('dispose');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/binaries/' + libraryId + '/' + libraryVersion);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.onload = () => {
                 const info = JSON.parse(xhr.responseText);
@@ -90,9 +117,31 @@
 
                     for (let idxCombination = 0; idxCombination < info.possibleCombinations.length; idxCombination++) {
                         const tdCombinationYesNo = $("<td class='binmatrixheaderoptionyesno' />");
-                        if (compiler.combinations.includes(idxCombination)) {
+                        var idxHash = compiler.combinations.indexOf(idxCombination);
+                        if (idxHash !== -1) {
                             tdCombinationYesNo.addClass("table-success");
                             tdCombinationYesNo.html("");
+
+                            tdCombinationYesNo.data('hash', compiler.hashes[idxHash]);
+
+                            const aMoreInfo = $("<button>More info</button>");
+                            aMoreInfo.addClass("btn");
+                            aMoreInfo.attr("href", "javascript:;");
+                            aMoreInfo.addClass("moreinfobtn");
+                            aMoreInfo.data("placement", "bottom");
+                            aMoreInfo.data("trigger", "manual");
+                            aMoreInfo.data("html", true);
+                            aMoreInfo.data("content", "Hash: " + compiler.hashes[idxHash]);
+                            aMoreInfo.click(function() {
+                                const who = $(this);
+                                if (!who.data("annotations")) {
+                                    requestAnnotations(libraryId, libraryVersion, who);
+                                } else {
+                                    who.popover('toggle');
+                                }
+                            });
+
+                            tdCombinationYesNo.append(aMoreInfo);
                         }
                         row.append(tdCombinationYesNo);
                     }
