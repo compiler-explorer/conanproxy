@@ -339,7 +339,7 @@ function main() {
             const failurerates = await buildlogging.getCompilerFailureRates();
             res.send(failurerates);
         })
-        .get('/hasfailedbefore', expireshourly, async (req, res) => {
+        .post('/hasfailedbefore', expireshourly, async (req, res) => {
             const data = req.body;
             const answer = await buildlogging.hasFailedBefore(
                 data.library,
