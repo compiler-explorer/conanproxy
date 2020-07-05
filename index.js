@@ -251,6 +251,8 @@ function main() {
                 '/healthcheck',
                 '/reinitialize',
                 '/libraries',
+                '/compilerfailurerates',
+                '/hasfailedbefore',
                 /^\/binaries\/.*/,
                 {
                     url: /^\/annotations\/.*/,
