@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/compiler-explorer/conanproxy#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "cross-env": "^7.0.2",
     "express": "^4.17.1",
     "express-jwt": "^6.0.0",

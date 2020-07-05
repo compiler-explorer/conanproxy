@@ -7,6 +7,7 @@ const
     express = require('express'),
     expressjwt = require('express-jwt'),
     jwt = require('jsonwebtoken'),
+    cors = require('cors'),
     httpProxy = require('http-proxy'),
     http = require('http'),
     https = require('https');
@@ -56,7 +57,7 @@ async function getConanBinaries(library, version) {
 
                     const setPerCompiler = {};
                     const setOfCombinations = [];
-                    _.each(jsdata, (obj) => {
+                    _.each(jsdata, (obj, hash) => {
                         const compilerid = obj.settings['compiler.version'];
                         const compilername = compilernames[compilerid];
                         const relevantSettings = _.omit(obj.settings, (val, key) => key.indexOf('compiler') === 0 &&
@@ -72,11 +73,13 @@ async function getConanBinaries(library, version) {
                         if (!setPerCompiler[compilerid]) {
                             setPerCompiler[compilerid] = {
                                 name: compilername,
-                                combinations: []
+                                combinations: [],
+                                hashes: []
                             };
                         }
 
                         setPerCompiler[compilerid].combinations.push(idx);
+                        setPerCompiler[compilerid].hashes.push(hash);
                     });
 
                     const orderedByCompilerId = {};
@@ -239,6 +242,7 @@ function main() {
     const proxy = newProxy();
 
     webServer
+        .use(cors())
         .use(express.json({
             limit: '10mb'
         }))
