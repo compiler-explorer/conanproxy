@@ -239,7 +239,12 @@ function main() {
     const proxy = newProxy();
 
     webServer
-        .use(express.json())
+        .use(express.json({
+            limit: '10mb'
+        }))
+        .use(express.urlencoded({
+            limit: '10mb'
+        }))
         .use(expressjwt({
             secret: jwtsecret,
             algorithms: ['HS256']
