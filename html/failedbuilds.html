@@ -1,0 +1,133 @@
+<html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/conan.css" />
+    <script language="Javascript">
+        const urlprefix = "https://conan.compiler-explorer.com";
+        let failedbuilds = [];
+
+        function fetchFailedBuilds() {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/allfailedbuilds');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                failedbuilds = JSON.parse(xhr.responseText);
+            };
+            xhr.send();
+        }
+
+        function refreshLibraries() {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/libraries');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                const librariesNode = $('#libraries tbody');
+                librariesNode.html("");
+
+                Object.keys(info).forEach(libraryId => {
+                    const library = info[libraryId];
+                    const row = $("<tr class='libraryrow'><td class='libraryname' /><td class='libraryversions' /></tr>");
+                    row.find('.libraryname').html(library.name);
+                    Object.keys(library.versions).forEach(versionId => {
+                        const version = library.versions[versionId];
+                        const versionlink = $("<a class='libraryversion' />");
+                        versionlink.data('libraryId', libraryId);
+                        versionlink.data('versionId', versionId);
+                        versionlink.data('version', version);
+                        versionlink.attr('href', "javascript:;");
+                        versionlink.html(version);
+                        versionlink.click(toggleMatrix);
+
+                        row.find('.libraryversions').append(versionlink);
+                    });
+                    librariesNode.append(row);
+
+                    const matrixNode = $("<tr class='libraryfailedbuilds'><td colspan='2' class='libraryfailedbuilds' /></tr>");
+                    matrixNode.attr("id", libraryId);
+                    matrixNode.hide();
+                    librariesNode.append(matrixNode);
+                });
+            };
+            xhr.send();
+        }
+
+        function downloadLogging(build) {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            // the filename you want
+            a.download = 'todo-1.json';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function toggleMatrix(node) {
+            const versionlink = $(node);
+            const libraryId = versionlink.data('libraryId');
+            const version = versionlink.data('version');
+
+            const matrixNode = $("#" + libraryId + " ");
+            const matrixNodeTD = matrixNode.find("td");
+            matrixNodeTD.html("");
+
+            const matrixTable = $("<table class='table table-striped'><thead><tr class='failedbuildsheader' /></thead><tbody /></table>");
+            const header = matrixTable.find('.binmatrixheader');
+
+            // headers
+            const tdCompiler = $("<th class='failedbuildscompiler' scope='col'>Compiler</th>");
+            header.append(tdCompiler);
+
+            // rows
+            for (let build in failedbuilds) {
+                // library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt
+                if ((build.library === libraryId) && (build.library_version === version)) {
+                    const row = $("<tr class='binmatrixrow'><th class='compilername' scope='row' /></tr>");
+                    row.append("<td class='compilertype' />");
+                    row.append("<td class='compilername' />");
+                    row.append("<td class='dt' />");
+                    row.append("<td class='arch' />");
+                    row.append("<td class='libcxx' />");
+                    row.append("<td class='extraflags' />");
+                    row.append("<td class='logging' />");
+
+                    row.find('.compilertype').html(build.compiler);
+                    row.find('.compilername').html(build.compiler_version);
+                    row.find('.dt').html(build.build_dt);
+                    row.find('.arch').html(build.arch);
+                    row.find('.libcxx').html(build.libcxx);
+                    row.find('.extraflags').html(build.compiler_flags);
+
+                    const downloadlink = $("<a />");
+                    downloadlink.attr("href", urlprefix + "/getlogging/" + build.build_dt);
+                    downloadlink.html("logging");
+                    row.find('.logging').append(downloadlink);
+
+                    matrixTable.find('tbody').append(row);
+                }
+            }
+
+            matrixNodeTD.append(matrixTable);
+        }
+
+        $(document).ready(() => {
+            refreshLibraries();
+            fetchFailedBuilds();
+        });
+    </script>
+</head>
+<body>
+    <table id="libraries" class='table'>
+        <thead>
+            <th scope='col'>Library</th><th scope='col'>Versions</th>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</body>
+</html>

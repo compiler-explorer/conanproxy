@@ -1,0 +1,18 @@
+a.libraryversion {
+    padding-right: 10px;
+}
+tr.binmatrixrow th {
+    padding: 0 0 0 .75em;
+}
+tr.binmatrixrow td {
+    padding: 0;
+}
+tr.compilerrow td {
+    padding: 0 0 1px 10px;
+}
+.combostdlibold {
+    color: gray;
+}
+body div.popover {
+    max-width: 400px;
+}

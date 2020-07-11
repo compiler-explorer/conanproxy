@@ -4,25 +4,9 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
-    <style>
-        a.libraryversion {
-            padding-right: 10px;
-        }
-        tr.binmatrixrow th {
-            padding: 0 0 0 .75em;
-        }
-        tr.binmatrixrow td {
-            padding: 0;
-        }
-        .combostdlibold {
-            color: gray;
-        }
-        body div.popover {
-            max-width: 400px;
-        }
-    </style>
+    <link rel="stylesheet" href="/conan.css" />
     <script language="Javascript">
-        const urlprefix = "";
+        const urlprefix = "https://conan.compiler-explorer.com";
         function refreshLibraries() {
             const xhr = new XMLHttpRequest();
             xhr.open('GET', urlprefix + '/libraries');
@@ -59,6 +43,20 @@
             xhr.send();
         }
 
+        function fetchDownloadUrls(libraryid, version, buildhash, callback) {
+            const url = urlprefix + '/v1/conans/' + libraryid + '/' + version + '/' + libraryid + '/' + version + '/packages/' + buildhash + '/download_urls';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+
+                callback(info);
+            };
+            xhr.send();
+        }
+
         function requestAnnotations(libraryid, version, who) {
             const buildhash = who.parent().data('hash');
             const xhr = new XMLHttpRequest();
@@ -74,9 +72,14 @@
                     content += key + ": " + info[key] + "<br />";
                 });
 
-                who.data('content', content);
+                fetchDownloadUrls(libraryid, version, buildhash, function(urls) {
+                    Object.keys(urls).forEach(filename => {
+                        content += "<a href='" + urls[filename] + "'>" + filename + "</a><br />";
+                    });
 
-                who.popover('toggle');
+                    who.data('content', content);
+                    who.popover('toggle');
+                });
             };
             xhr.send();
         }

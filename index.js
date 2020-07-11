@@ -180,7 +180,7 @@ async function refreshConanLibraries(forceall) {
             if (ceLib) {
                 fs.opendir(`${conanserverroot}/data/${libraryId}`).then(async (versionDirs) => {
                     for await (const versionDir of versionDirs) {
-                        let ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name);
+                        let ceVersion = _.find(ceLib.versions, ver => ver.version === versionDir.name || ver.lookupversion === versionDir.name);
                         if (!ceVersion && forceall) ceVersion = { id: versionDir.name.replace(reDot, '') };
                         if (ceVersion) {
                             if (!availableLibrariesAndVersions[libraryId]) {
@@ -254,7 +254,12 @@ function main() {
             algorithms: ['HS256']
         }).unless({
             path: [
+                '/',
+                '/index.html',
                 '/libraries.html',
+                '/compilerfailurerates.html',
+                '/failedbuilds.html',
+                '/conan.css',
                 '/favicon.ico',
                 '/login',
                 '/healthcheck',
@@ -262,13 +267,15 @@ function main() {
                 '/libraries',
                 '/compilerfailurerates',
                 '/hasfailedbefore',
+                '/allfailedbuilds',
+                /^\/getlogging\/[0-9]*/,
                 /^\/binaries\/.*/,
                 {
                     url: /^\/annotations\/.*/,
                     methods: ['GET', 'OPTIONS']
                 },
                 /^\/v1\/.*/,
-                /^\/v2\/.*/,
+                /^\/v2\/.*/
             ]
         }))
         .post('/login', nocache, async (req, res) => {
@@ -363,6 +370,27 @@ function main() {
                 response: answer
             });
         })
+        .options('/allfailedbuilds', expireshourly, async (req, res) => {
+            res.send();
+        })
+        .get('/allfailedbuilds', expireshourly, async (req, res) => {
+            const builds = await buildlogging.listBuilds();
+            res.send(builds);
+        })
+        .options('/getlogging', expireshourly, async (req, res) => {
+            res.send();
+        })
+        .get('/getlogging/:dt', expireshourly, async (req, res) => {
+            const logging = await buildlogging.getLogging(req.params.dt);
+
+            if (logging) {
+                const entry = logging[0];
+                const filename = entry.library_version + "_" + entry.compiler_version + "_" + entry.build_dt + ".txt";
+                res.header('Content-Disposition', 'attachment; filename="' + filename +'"').send(entry.logging);
+            } else {
+                res.sendStatus(404);
+            }
+        })
         .use('/v1', (req, res, next) => {
             req.url = `/v1${req.url}`;
             proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
@@ -374,6 +402,10 @@ function main() {
             proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
                 next(e);
             });
+        })
+        .use('/', (req, res, next) => {
+            if (req.url === "/") req.url = "/index.html";
+            next();
         })
         .use(express.static('html'))
         .listen(1080);
