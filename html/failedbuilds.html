@@ -6,12 +6,12 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/conan.css" />
     <script language="Javascript">
-        const urlprefix = "https://conan.compiler-explorer.com";
+        const urlprefix = "";
         let failedbuilds = [];
 
         function fetchFailedBuilds() {
             const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/allfailedbuilds');
+            xhr.open('GET', urlprefix + '/allfailedbuilds');
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.onload = () => {
                 failedbuilds = JSON.parse(xhr.responseText);
@@ -67,38 +67,56 @@
             window.URL.revokeObjectURL(url);
         }
 
-        function toggleMatrix(node) {
-            const versionlink = $(node);
+        function formatDateTime(dt) {
+            const dtstr = dt.toString();
+            const year = dtstr.substr(0, 4);
+            const month = dtstr.substr(4, 2);
+            const day = dtstr.substr(6, 2);
+            const hour = dtstr.substr(8, 2);
+            const min = dtstr.substr(10, 2);
+            const sec = dtstr.substr(12, 2);
+
+            return year + '-' + month + '-' + day + ' ' + hour + ':' + min + ':' + sec;
+        }
+
+        function toggleMatrix() {
+            const versionlink = $(this);
             const libraryId = versionlink.data('libraryId');
             const version = versionlink.data('version');
 
             const matrixNode = $("#" + libraryId + " ");
-            const matrixNodeTD = matrixNode.find("td");
+            const matrixNodeTD = matrixNode.find("td.libraryfailedbuilds");
             matrixNodeTD.html("");
 
             const matrixTable = $("<table class='table table-striped'><thead><tr class='failedbuildsheader' /></thead><tbody /></table>");
-            const header = matrixTable.find('.binmatrixheader');
+            const header = matrixTable.find('.failedbuildsheader');
 
             // headers
-            const tdCompiler = $("<th class='failedbuildscompiler' scope='col'>Compiler</th>");
-            header.append(tdCompiler);
+            let th = $("<th class='failedbuildscol' scope='col'>Compiler</th>");
+            header.append(th);
+            th = $("<th class='failedbuildscol' scope='col'>When</th>");
+            header.append(th);
+            th = $("<th class='failedbuildscol' scope='col'>Arch</th>");
+            header.append(th);
+            th = $("<th class='failedbuildscol' scope='col'>Libcxx</th>");
+            header.append(th);
+            th = $("<th class='failedbuildscol' scope='col'>&nbsp;</th>");
+            header.append(th);
 
             // rows
-            for (let build in failedbuilds) {
+            for (let idx in failedbuilds) {
+                const build = failedbuilds[idx];
                 // library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt
                 if ((build.library === libraryId) && (build.library_version === version)) {
-                    const row = $("<tr class='binmatrixrow'><th class='compilername' scope='row' /></tr>");
-                    row.append("<td class='compilertype' />");
-                    row.append("<td class='compilername' />");
+                    const row = $("<tr class='failedbuildsrow'><th class='compilername' scope='row' /></tr>");
                     row.append("<td class='dt' />");
                     row.append("<td class='arch' />");
                     row.append("<td class='libcxx' />");
                     row.append("<td class='extraflags' />");
                     row.append("<td class='logging' />");
 
-                    row.find('.compilertype').html(build.compiler);
                     row.find('.compilername').html(build.compiler_version);
-                    row.find('.dt').html(build.build_dt);
+                    row.find('.dt').html(formatDateTime(build.build_dt));
                     row.find('.arch').html(build.arch);
                     row.find('.libcxx').html(build.libcxx);
                     row.find('.extraflags').html(build.compiler_flags);
@@ -113,6 +131,7 @@
             }
 
             matrixNodeTD.append(matrixTable);
+            matrixNode.show();
         }
 
         $(document).ready(() => {
