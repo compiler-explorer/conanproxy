@@ -18,6 +18,9 @@
 
                 Object.keys(info).forEach(libraryId => {
                     const library = info[libraryId];
+
+                    if (library.name === 'ulib') return; // pretend theres no ulib for the time being
+
                     const row = $("<tr class='libraryrow'><td class='libraryname' /><td class='libraryversions' /></tr>");
                     row.find('.libraryname').html(library.name);
                     Object.keys(library.versions).forEach(versionId => {
