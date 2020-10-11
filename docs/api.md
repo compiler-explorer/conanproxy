@@ -128,6 +128,7 @@ Payload example:
 }
 ```
 
+
 ### POST `/buildsuccess`
 
 Indicate that a build has succeeded. This actually clears the buildfailed status for the given library version and configuration.
@@ -142,5 +143,18 @@ Payload example:
     "arch": "x86_64",
     "libcxx": "libstdc++",
     "flagcollection": ""
+}
+```
+
+
+### POST `/clearbuildstatusforcompiler`
+
+For when a compiler has been fixed and libraries should attempt to build for this compiler again.
+
+Payload example:
+```
+{
+    "compiler": "gcc",
+    "compiler_version": "g101"
 }
 ```

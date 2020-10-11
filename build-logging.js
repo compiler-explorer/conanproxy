@@ -51,6 +51,20 @@ class BuildLogging {
         await stmt.run();
     }
 
+    async clearBuildStatusForCompiler(compiler, compiler_version) {
+        const stmt = await this.connection.prepare(
+            `delete from latest
+                where compiler=@compiler
+                  and compiler_version=@compiler_version`);
+    
+        await stmt.bind({
+            '@compiler': compiler,
+            '@compiler_version': compiler_version
+        });
+
+        await stmt.run();
+    }
+
     async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging) {
         const now = this.getCurrentDateStr();
 

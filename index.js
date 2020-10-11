@@ -351,6 +351,14 @@ function main() {
             );
             res.send("OK");
         })
+        .post('/clearbuildstatusforcompiler', nocache, async (req, res) => {
+            const data = req.body;
+            buildlogging.clearBuildStatusForCompiler(
+                data.compiler,
+                data.compiler_version
+            );
+            res.send("OK");
+        })
         .get('/compilerfailurerates', expireshourly, async (req, res) => {
             const failurerates = await buildlogging.getCompilerFailureRates();
             res.send(failurerates);
