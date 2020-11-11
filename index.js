@@ -20,6 +20,7 @@ const ceserverurl = 'https://godbolt.org';
 
 const userhome = "/home/ce";
 const conanserverroot = userhome + "/.conan_server";
+const buildlogspath = conanserverroot + '/buildslogs.db';
 
 let compilernames = null;
 let allLibrariesAndVersions = null;
@@ -30,7 +31,7 @@ let availableLibraryIds = [];
 let modifiedDt = null;
 
 const annotations = new BuildAnnotations(conanserverroot);
-const buildlogging = new BuildLogging(userhome + "/buildlogs.db");
+const buildlogging = new BuildLogging(buildlogspath);
 const jwtsecret = process.env.CESECRET;
 const cepassword = process.env.CEPASSWORD;
 
