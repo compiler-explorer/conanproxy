@@ -15,6 +15,35 @@
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.onload = () => {
                 failedbuilds = JSON.parse(xhr.responseText);
+
+                for (let failedBuild of failedbuilds) {
+                    const libraryId = failedBuild.library;
+                    const versionId = failedBuild.library_version;
+
+                    let matrixNode = $("#" + libraryId + " ");
+                    if (!matrixNode.length) {
+                        const librariesNode = $('#libraries tbody');
+                        const row = $("<tr class='libraryrow'><td class='libraryname' /><td class='libraryversions' /></tr>");
+                        row.find('.libraryname').html(libraryId);
+                        const versionlink = $("<a class='libraryversion' />");
+                        versionlink.data('libraryId', libraryId);
+                        versionlink.data('versionId', versionId);
+                        versionlink.data('version', versionId);
+                        versionlink.attr('href', "javascript:;");
+                        versionlink.html(versionId);
+                        versionlink.click(toggleMatrix);
+
+                        row.find('.libraryversions').append(versionlink);
+                        librariesNode.append(row);
+
+                        matrixNode = $("<tr class='libraryfailedbuilds'><td colspan='2' class='libraryfailedbuilds' /></tr>");
+                        matrixNode.attr("id", libraryId);
+                        matrixNode.hide();
+
+                        librariesNode.append(matrixNode);
+                    }
+                }
+
             };
             xhr.send();
         }
