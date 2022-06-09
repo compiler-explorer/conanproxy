@@ -322,17 +322,23 @@ function main() {
             modifiedDt = new Date();
             res.send('done');
         })
+        .options('/libraries/cpp', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/libraries/cpp', libraryexpireheaders, async (req, res) => {
+            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'cpp' }));
+        })
+        .options('/libraries/rust', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/libraries/rust', libraryexpireheaders, async (req, res) => {
+            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'rust' }));
+        })
         .options('/libraries', libraryexpireheaders, async (req, res) => {
             res.send();
         })
         .get('/libraries', libraryexpireheaders, async (req, res) => {
             res.send(availableLibrariesAndVersions);
-        })
-        .get('/libraries/cpp', libraryexpireheaders, async (req, res) => {
-            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'cpp' }));
-        })
-        .get('/libraries/rust', libraryexpireheaders, async (req, res) => {
-            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'rust' }));
         })
         .options('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
             res.send();
