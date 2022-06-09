@@ -289,6 +289,8 @@ function main() {
                 '/login',
                 '/healthcheck',
                 '/reinitialize',
+                '/libraries/cpp',
+                '/libraries/rust',
                 '/libraries',
                 '/compilerfailurerates',
                 '/hasfailedbefore',
