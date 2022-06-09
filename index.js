@@ -282,6 +282,8 @@ function main() {
                 '/',
                 '/index.html',
                 '/libraries.html',
+                '/libraries_rust.html',
+                '/libraries_cpp.html',
                 '/compilerfailurerates.html',
                 '/failedbuilds.html',
                 '/conan.css',
