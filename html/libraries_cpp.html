@@ -1,0 +1,188 @@
+<html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/conan.css" />
+    <script language="Javascript">
+        const urlprefix = "https://conan.compiler-explorer.com";
+        function refreshLibraries() {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/libraries/cpp');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                const librariesNode = $('#libraries tbody');
+                librariesNode.html("");
+
+                Object.keys(info).forEach(libraryId => {
+                    const library = info[libraryId];
+
+                    if (library.name === 'ulib') return; // pretend theres no ulib for the time being
+
+                    const row = $("<tr class='libraryrow'><td class='libraryname' /><td class='libraryversions' /></tr>");
+                    row.find('.libraryname').html(library.name);
+                    Object.keys(library.versions).forEach(versionId => {
+                        const version = library.versions[versionId];
+                        const versionlink = $("<a class='libraryversion' />");
+                        versionlink.data('libraryId', libraryId);
+                        versionlink.data('versionId', versionId);
+                        versionlink.data('version', version);
+                        versionlink.attr('href', "javascript:;");
+                        versionlink.html(version);
+                        versionlink.click(toggleMatrix);
+
+                        row.find('.libraryversions').append(versionlink);
+                    });
+                    librariesNode.append(row);
+
+                    const matrixNode = $("<tr class='librarymatrixrow'><td colspan='2' class='librarymatrix' /></tr>");
+                    matrixNode.attr("id", libraryId);
+                    matrixNode.hide();
+                    librariesNode.append(matrixNode);
+                });
+            };
+            xhr.send();
+        }
+
+        function fetchDownloadUrls(libraryid, version, buildhash, callback) {
+            const url = urlprefix + '/v1/conans/' + libraryid + '/' + version + '/' + libraryid + '/' + version + '/packages/' + buildhash + '/download_urls';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+
+                callback(info);
+            };
+            xhr.send();
+        }
+
+        function requestAnnotations(libraryid, version, who) {
+            const buildhash = who.parent().data('hash');
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/annotations/' + libraryid + '/' + version + '/' + buildhash);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                who.data('annotations', info);
+
+                let content = "";
+                content += "buildhash: " + buildhash + "<br />";
+                Object.keys(info).forEach(key => {
+                    content += key + ": " + info[key] + "<br />";
+                });
+
+                fetchDownloadUrls(libraryid, version, buildhash, function(urls) {
+                    Object.keys(urls).forEach(filename => {
+                        content += "<a href='" + urls[filename] + "'>" + filename + "</a><br />";
+                    });
+
+                    who.data('content', content);
+                    who.popover('toggle');
+                });
+            };
+            xhr.send();
+        }
+
+        function refreshMatrix(libraryId, libraryVersion, matrixNode) {
+            $("button.moreinfobtn").popover('dispose');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/binaries/' + libraryId + '/' + libraryVersion);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                matrixNode.find("td").html("");
+
+                const matrixTable = $("<table class='table table-striped'><thead><tr class='binmatrixheader' /></thead><tbody /></table>");
+                const header = matrixTable.find('.binmatrixheader');
+
+                const tdCompiler = $("<th class='binmatrixheadercompiler' scope='col'>Compiler</th>");
+                header.append(tdCompiler);
+
+                info.possibleCombinations.forEach(combination => {
+                    const td = $("<th class='binmatrixheaderoption' scope='col' />");
+                    td.append($("<div />").addClass("comboarch").html(combination.arch));
+                    td.append($("<div />").addClass("combobuildtype").html(combination.build_type));
+                    td.append($("<div />").addClass("comboflags").html(combination.flagcollection));
+                    td.append($("<div />").addClass("combostdver").html(combination.stdver));
+                    td.append($("<div />").addClass("combostdlibold").html(combination.stdlib));
+                    td.append($("<div />").addClass("combostdlib").html(combination['compiler.libcxx']));
+
+                    header.append(td);
+                });
+
+                Object.keys(info.perCompiler).forEach(compilerId => {
+                    const compiler = info.perCompiler[compilerId];
+                    const row = $("<tr class='binmatrixrow'><th class='compilername' scope='row' /></tr>");
+                    row.find('.compilername').html(compiler.name);
+                    row.find('.compilername').data('compilerid', compilerId);
+
+                    for (let idxCombination = 0; idxCombination < info.possibleCombinations.length; idxCombination++) {
+                        const tdCombinationYesNo = $("<td class='binmatrixheaderoptionyesno' />");
+                        var idxHash = compiler.combinations.indexOf(idxCombination);
+                        if (idxHash !== -1) {
+                            tdCombinationYesNo.addClass("table-success");
+                            tdCombinationYesNo.html("");
+
+                            tdCombinationYesNo.data('hash', compiler.hashes[idxHash]);
+
+                            const aMoreInfo = $("<button>More info</button>");
+                            aMoreInfo.addClass("btn");
+                            aMoreInfo.attr("href", "javascript:;");
+                            aMoreInfo.addClass("moreinfobtn");
+                            aMoreInfo.data("placement", "bottom");
+                            aMoreInfo.data("trigger", "manual");
+                            aMoreInfo.data("html", true);
+                            aMoreInfo.data("content", "Hash: " + compiler.hashes[idxHash]);
+                            aMoreInfo.click(function() {
+                                const who = $(this);
+                                if (!who.data("annotations")) {
+                                    requestAnnotations(libraryId, libraryVersion, who);
+                                } else {
+                                    who.popover('toggle');
+                                }
+                            });
+
+                            tdCombinationYesNo.append(aMoreInfo);
+                        }
+                        row.append(tdCombinationYesNo);
+                    }
+
+                    matrixTable.find("tbody").append(row);
+                });
+
+                matrixNode.find("td").append(matrixTable);
+            };
+            xhr.send();
+        }
+
+        function toggleMatrix() {
+            const link = $(this);
+            const libraryId = link.data("libraryId");
+            const versionId = link.data("versionId");
+            const version = link.data("version");
+
+            const matrixNode = $("#" + libraryId);
+            refreshMatrix(libraryId, version, matrixNode);
+            matrixNode.show();
+        }
+
+        $(document).ready(() => {
+            refreshLibraries();
+        });
+    </script>
+</head>
+<body>
+    <table id="libraries" class='table'>
+        <thead>
+            <th scope='col'>Library</th><th scope='col'>Versions</th>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</body>
+</html>

@@ -23,7 +23,8 @@ const conanserverroot = userhome + "/.conan_server";
 const buildlogspath = conanserverroot + '/buildslogs.db';
 
 let compilernames = null;
-let allLibrariesAndVersions = null;
+let allRustLibrariesAndVersions = null;
+let allCppLibrariesAndVersions = null;
 
 let availableLibrariesAndVersions = {};
 let availableLibraryIds = [];
@@ -61,6 +62,7 @@ async function getConanBinaries(library, version) {
                     _.each(jsdata, (obj, hash) => {
                         const compilerid = obj.settings['compiler.version'];
                         const compilername = compilernames[compilerid];
+                        const compilertype = obj.settings['compiler'];
                         const relevantSettings = _.omit(obj.settings, (val, key) => key.indexOf('compiler') === 0 &&
                             key.indexOf('compiler.libcxx') === -1);
                         const settingsWithoutCompiler = JSON.stringify(relevantSettings);
@@ -74,6 +76,7 @@ async function getConanBinaries(library, version) {
                         if (!setPerCompiler[compilerid]) {
                             setPerCompiler[compilerid] = {
                                 name: compilername,
+                                compilertype: compilertype,
                                 combinations: [],
                                 hashes: []
                             };
@@ -129,7 +132,19 @@ async function refreshCELibraries() {
             let data = '';
             resp.on('data', (chunk) => data += chunk);
             resp.on('end', () => {
-                allLibrariesAndVersions = JSON.parse(data);
+                allCppLibrariesAndVersions = JSON.parse(data);
+                resolve(true);
+            });
+        }).on('error', (err) => {
+            console.error(err);
+            reject(err);
+        });
+
+        https.get(`${ceserverurl}/api/libraries/rust`, { headers: { Accept: 'application/json' } }, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                allRustLibrariesAndVersions = JSON.parse(data);
                 resolve(true);
             });
         }).on('error', (err) => {
@@ -176,8 +191,16 @@ async function refreshConanLibraries(forceall) {
         for await (const libraryDir of libraryDirs) {
             const libraryId = libraryDir.name;
             availableLibraryIds.push(libraryId);
-            let ceLib = _.find(allLibrariesAndVersions, (lib) => lib.id === libraryId);
+            let language = 'cpp';
+
+            let ceLib = _.find(allCppLibrariesAndVersions, (lib) => lib.id === libraryId);
+            if (!ceLib) {
+                ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
+                if (ceLib) language = 'rust'
+            }
+
             if (!ceLib && forceall) ceLib = { name: libraryId, versions: {} };
+
             if (ceLib) {
                 fs.opendir(`${conanserverroot}/data/${libraryId}`).then(async (versionDirs) => {
                     for await (const versionDir of versionDirs) {
@@ -187,6 +210,7 @@ async function refreshConanLibraries(forceall) {
                             if (!availableLibrariesAndVersions[libraryId]) {
                                 availableLibrariesAndVersions[libraryId] = {
                                     name: ceLib.name,
+                                    language: language,
                                     versions: {}
                                 };
                             }
@@ -303,6 +327,12 @@ function main() {
         })
         .get('/libraries', libraryexpireheaders, async (req, res) => {
             res.send(availableLibrariesAndVersions);
+        })
+        .get('/libraries/cpp', libraryexpireheaders, async (req, res) => {
+            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'cpp' }));
+        })
+        .get('/libraries/rust', libraryexpireheaders, async (req, res) => {
+            res.send(availableLibrariesAndVersions.filter((lib) => { lib.language === 'rust' }));
         })
         .options('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
             res.send();
