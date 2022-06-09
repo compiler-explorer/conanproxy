@@ -196,7 +196,7 @@ async function refreshConanLibraries(forceall) {
             let ceLib = _.find(allCppLibrariesAndVersions, (lib) => lib.id === libraryId);
             if (!ceLib) {
                 ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
-                if (ceLib) language = 'rust'
+                if (ceLib) language = 'rust';
             }
 
             if (!ceLib && forceall) ceLib = { name: libraryId, versions: {} };
@@ -330,13 +330,13 @@ function main() {
             res.send();
         })
         .get('/libraries/cpp', libraryexpireheaders, async (req, res) => {
-            res.send(availableLibrariesAndVersions.filter((lib) => lib.language === 'cpp'));
+            res.send(_.filter(availableLibrariesAndVersions, (lib) => lib.language === 'cpp'));
         })
         .options('/libraries/rust', libraryexpireheaders, async (req, res) => {
             res.send();
         })
         .get('/libraries/rust', libraryexpireheaders, async (req, res) => {
-            res.send(availableLibrariesAndVersions.filter((lib) => lib.language === 'rust'));
+            res.send(_.filter(availableLibrariesAndVersions, (lib) => lib.language === 'rust'));
         })
         .options('/libraries', libraryexpireheaders, async (req, res) => {
             res.send();
