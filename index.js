@@ -330,13 +330,21 @@ function main() {
             res.send();
         })
         .get('/libraries/cpp', libraryexpireheaders, async (req, res) => {
-            res.send(_.filter(availableLibrariesAndVersions, (lib) => lib.language === 'cpp'));
+            const filteredlibs = {};
+            _.each(availableLibrariesAndVersions, (lib, id) => {
+                if (lib.language === 'cpp') filteredlibs[id] = lib;
+            });
+            res.send(filteredlibs);
         })
         .options('/libraries/rust', libraryexpireheaders, async (req, res) => {
             res.send();
         })
         .get('/libraries/rust', libraryexpireheaders, async (req, res) => {
-            res.send(_.filter(availableLibrariesAndVersions, (lib) => lib.language === 'rust'));
+            const filteredlibs = {};
+            _.each(availableLibrariesAndVersions, (lib, id) => {
+                if (lib.language === 'rust') filteredlibs[id] = lib;
+            });
+            res.send(filteredlibs);
         })
         .options('/libraries', libraryexpireheaders, async (req, res) => {
             res.send();
