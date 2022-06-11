@@ -442,7 +442,7 @@ function main() {
             if (logging) {
                 const entry = logging[0];
 
-                if (len(logging) > 1) {
+                if (logging.length > 1) {
                     res.sendStatus(409);
                 } else if (entry && entry.library && entry.library_version && entry.compiler_version && entry.build_dt && entry.logging) {
                     const filename = entry.library + "_" + entry.library_version + "_" + entry.compiler_version + "_" + entry.build_dt + ".txt";
