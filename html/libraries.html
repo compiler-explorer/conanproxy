@@ -118,7 +118,11 @@
                 Object.keys(info.perCompiler).forEach(compilerId => {
                     const compiler = info.perCompiler[compilerId];
                     const row = $("<tr class='binmatrixrow'><th class='compilername' scope='row' /></tr>");
-                    row.find('.compilername').html(compiler.name);
+                    if (compilerId === 'cshared') {
+                        row.find('.compilername').html('Any (C .so)');
+                    } else {
+                        row.find('.compilername').html(compiler.name);
+                    }
                     row.find('.compilername').data('compilerid', compilerId);
 
                     for (let idxCombination = 0; idxCombination < info.possibleCombinations.length; idxCombination++) {
