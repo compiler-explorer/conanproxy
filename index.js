@@ -285,6 +285,7 @@ function main() {
                 '/libraries_cpp.html',
                 '/compilerfailurerates.html',
                 '/failedbuilds.html',
+                '/usage.html',
                 '/conan.css',
                 '/favicon.ico',
                 '/login',
