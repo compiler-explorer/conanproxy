@@ -52,11 +52,15 @@
         }
 
         function makeChart(usage) {
-            var libraries = _.unique(usage.map((d) => d.library));
+            const libraries = _.unique(usage.map((d) => d.library));
 
-            var max = _.max(usage.map((d) => d.times_used));
+            const minDate = new Date(_.min(usage.map((d) => Date.parse(d.first_used))));
+            const maxDate = new Date(_.max(usage.map((d) => Date.parse(d.last_used))));
 
-            var colors = libraries.map((lib) => {
+            $('#from').html(minDate.toDateString());
+            $('#to').html(maxDate.toDateString());
+
+            const colors = libraries.map((lib) => {
                 if (cpplibraries.indexOf(lib) !== -1) {
                     return 'rgba(255, 0, 0, 0.2)';
                 } else if (rustlibraries.indexOf(lib) !== -1) {
@@ -110,7 +114,7 @@
     <div>
         <p><strong>About this graph</strong></p>
         <p>
-            This graph shows a snapshot of library usage (unsorted) when using Binary mode or Execution of Cpp libraries (red bars),
+            This graph shows a snapshot (<em>between <span id="from"></span> and <span id="to"></span></em>) of library usage (unsorted) when using Binary mode or Execution of Cpp libraries (red bars),
             and for the Rust libraries (blue bars) it shows all usage.
         </p>
         <p>
