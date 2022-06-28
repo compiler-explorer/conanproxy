@@ -1,0 +1,109 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/underscore@1.13.4/underscore-umd-min.js"></script>
+    <link rel="stylesheet" href="/conan.css" />
+    <script language="Javascript">
+        const urlprefix = 'https://conan.compiler-explorer.com';
+        let chart;
+        let cpplibraries;
+        let rustlibraries;
+
+        function loadChart() {
+            d3.csv('https://compiler-explorer.s3.amazonaws.com/public/library_usage.csv')
+                .then(makeChart);
+        }
+
+        function loadCppLibraries(done) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/libraries/cpp');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                cpplibraries = Object.keys(info);
+                done[0](done.slice(1));
+            };
+            xhr.send();
+        }
+
+        function loadRustLibraries(done) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', urlprefix + '/libraries/rust');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                rustlibraries = Object.keys(info);
+                done[0](done.slice(1));
+            };
+            xhr.send();
+        }
+
+        function makeChart(usage) {
+            var libraries = _.unique(usage.map((d) => d.library));
+
+            var max = _.max(usage.map((d) => d.times_used));
+
+            var colors = libraries.map((lib) => {
+                if (cpplibraries.indexOf(lib) !== -1) {
+                    return 'rgba(255, 0, 0, 0.2)';
+                } else if (rustlibraries.indexOf(lib) !== -1) {
+                    return 'rgba(0, 0, 255, 0.2)';
+                } else {
+                    return 'rgba(127, 127, 127, 0.2)';
+                }
+            });
+
+            var datasets = [{
+                data: libraries.map((lib) => {
+                    var filteredUsageData = usage.filter((d) => d.library === lib);
+                    return _.reduce(filteredUsageData, (memo, d) => {
+                            return memo + parseInt(d.times_used);
+                        }, 0);
+                    }),
+                backgroundColor: colors
+            }];
+
+            var chart = new Chart('chart', {
+                type: 'horizontalBar',
+                data: {
+                    labels: libraries,
+                    datasets: datasets
+                },
+                options: {
+                    legend: {
+                        display: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            loadCppLibraries([loadRustLibraries, loadChart]);
+        });
+    </script>
+    <title>CE - Library binaries usage data</title>
+</head>
+
+<body>
+    <canvas id="chart"></canvas>
+</body>
+
+</html>
