@@ -1,3 +1,7 @@
+:root {
+    --black: rgba(0,0,0, 0.8);;
+}
+
 a.libraryversion {
     padding-right: 10px;
 }
@@ -15,4 +19,35 @@ tr.compilerrow td {
 }
 body div.popover {
     max-width: 400px;
+}
+
+#tooltip {
+    position: absolute;
+    display: inline-block;
+    height: auto;
+    font-size: 12px;
+    background-color: var(--black);
+    padding: 10px 8px;
+    border-radius: 6px;
+    color: white;
+}
+
+#tooltip.hidden {
+    display: none;
+}
+#tooltip .library  {
+    font-weight: bold;
+    line-height: 20px;
+}
+
+#box-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: -10px;
+    top: 17px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent; 
+
+    border-right:10px solid var(--black);
 }

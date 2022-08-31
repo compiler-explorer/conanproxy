@@ -1,0 +1,221 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <link rel="stylesheet" href="./conan.css" />
+    
+    <title>CE - Library binaries usage data</title>
+    <style>
+        
+
+    </style>
+</head>
+
+<body>
+    <!-- <canvas id="chart"></canvas> -->
+    <div id="tooltip" class="hidden">
+        <div id="box-arrow"></div>
+        <span class="library">Library</span> <br />
+        <span class="usage">Value</span>
+        
+    </div>
+    <svg width="800" height="700"></svg>
+
+    <div>&nbsp;</div>
+    <div class="mx-4">
+        <h3><strong>About this graph</strong></h3>
+        <p>
+            This graph shows a snapshot (<em>between <span id="from"></span> and <span id="to"></span></em>) of library usage (unsorted) when using Binary mode or Execution of Cpp libraries (red bars),
+            and for the Rust libraries (blue bars) it shows all usage.
+        </p>
+        <h4>Libraries not displayed on the chart</h4>
+        <p>
+            <ul id="notOnChart"></ul>
+
+        </p>
+        <p>
+            It does not contain all library usage, none of the header-only libraries are included, and some libraries are not stored in conan (openssl, hdf5, libuv, lua, nsimd).
+        </p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/underscore@1.13.4/underscore-umd-min.js"></script>
+    
+    <script language="Javascript">
+        const urlprefix = 'https://conan.compiler-explorer.com';
+        let chart;
+        let cpplibraries;
+        let rustlibraries;
+        const minRange = 20;
+
+        function loadChart() {
+            
+            d3.csv('https://compiler-explorer.s3.amazonaws.com/public/library_usage.csv')
+                .then(data => {
+                    makeChart(data)
+                });
+        }
+
+        function loadCppLibraries(done) {
+            fetch(urlprefix + '/libraries/cpp' , {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(info => {
+                    cpplibraries = Object.keys(info)
+                    done[0](done.slice(1));
+                })
+        }
+
+        function loadRustLibraries(done) {
+            
+            fetch(urlprefix + '/libraries/rust', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(info => {
+                rustlibraries = Object.keys(info)
+                done[0](done.slice(1))
+            })
+        }
+
+        function makeChart(usage) {
+            var svg = d3.select("svg"),
+            margin = {top: 20, right: 30, bottom: 40, left: 90},
+            width = svg.attr("width") - margin.left - margin.right,
+            height = svg.attr("height") - margin.top - margin.bottom;
+
+            var xScale = d3.scaleLinear()
+                            .range([0, width])
+                            // .padding(0.5)
+            var   yScale = d3.scaleBand()
+                            .range([0, height]).padding(0.3)
+
+            var g = svg.append("g").attr("transform", "translate("+ margin.left+","+margin.top+")")
+
+
+            const libraries = _.unique(usage.map((d) => d.library));
+
+            const minDate = new Date(_.min(usage.map((d) => Date.parse(d.first_used))));
+            const maxDate = new Date(_.max(usage.map((d) => Date.parse(d.last_used))));
+
+            $('#from').html(minDate.toDateString());
+            $('#to').html(maxDate.toDateString());
+
+
+            // Filter the library usage to get its total_usage as well as color and category
+            let filteredUsageData = libraries.map((lib) => {
+                    var usageData = usage.filter((d) => (d.library === lib));
+                    // Set the color for the library
+                    const color = cpplibraries.includes(lib) ? 'rgba(255, 0, 0, 0.2)'
+                                                    : rustlibraries.includes(lib) ? 'rgba(0, 0, 255, 0.2)' 
+                                                    : 'rgba(127, 127, 127, 0.2)';
+                    // Set the category for which the library belongs
+                    const category = cpplibraries.includes(lib) ? 'cpp'
+                                                    : rustlibraries.includes(lib) ? 'rust' 
+                                                    : 'others';
+                    return {
+                        'library': lib,
+                        color,
+                        category,
+                        'usage': _.reduce(usageData, (memo, d) => {
+                            return memo + parseInt(d.times_used);
+                            }, 0),
+                        }
+                    })
+            
+            // Get the libraries to display on chart 
+            // and that which will not be on the chart
+            let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
+            let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
+            // console.log(dataOnChart)
+            
+            // Display libraries not on chart as un-ordered list
+            dataNotOnChart.forEach( info => {
+                $('#notOnChart').append(`<li> ${info.library} (${info.category}) - ${info.usage} </li>`)
+            })
+            
+            
+            // console.log(d3.max(dataOnChart.map(d => d.usage)))
+            xScale.domain([0, d3.max(dataOnChart.map(d => d.usage))])
+            yScale.domain(dataOnChart.map(d => d.library))
+
+            g.append("g").attr("transform", "translate(0," + height +")")
+                    .call(d3.axisBottom(xScale))
+            g.append("g").call(d3.axisLeft(yScale))
+
+            svg.selectAll("myRect")
+                            .data(dataOnChart)
+                            .enter()
+                            .append("rect")
+                            .on("mouseover", onMouseOver)
+                            .on("mouseout", onMouseOut)
+                            .attr("x", d => xScale(350))
+                            .attr("y", (d) => yScale(d.library)+20)
+                            .transition()
+                            .ease(d3.easeLinear)
+                            .duration(800)
+                            .delay((d, i) => i*50)
+                            .attr("width",  (d) => xScale(d.usage))
+                            .attr("height", yScale.bandwidth())
+                            .attr("fill", (d) => d.color)
+                            
+            function onMouseOver(d, i) {
+                let posX = parseFloat(d3.select(this).attr("x")) + xScale(d.usage) + 10
+                let posY = parseFloat(d3.select(this).attr("y")) - yScale.bandwidth() / 2
+                
+
+                d3.select("#tooltip")
+                    .style("left", posX + "px")
+                    .style("top", posY + "px")
+                    .select(".library").text(d.library)
+                d3.select("#tooltip").select(".usage").text(d.usage)
+
+                d3.select("#tooltip").classed("hidden", false)
+
+                d3.select(this)
+                    .transition()
+                    .duration(300)
+                    .attr("y", (d) => yScale(d.library) + 17)
+                    .attr("width", (d) => xScale(d.usage) + 5)
+                    .attr('height', yScale.bandwidth() + 6)
+            }
+            
+            function onMouseOut(d, i) {
+                d3.select(this)
+                    .transition()
+                    .duration(500)
+                    .attr("y", (d) => yScale(d.library)+20)
+                    .attr("width", (d) => xScale(d.usage))
+                    .attr('height', yScale.bandwidth())
+                
+                d3.select("#tooltip").classed("hidden", true)
+            }
+
+        }
+
+        
+
+        $(document).ready(function () {
+            loadCppLibraries([loadRustLibraries, loadChart]);
+        });
+    </script>
+</body>
+
+</html>

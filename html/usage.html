@@ -15,31 +15,46 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/underscore@1.13.4/underscore-umd-min.js"></script>
-    <link rel="stylesheet" href="/conan.css" />
+    <link rel="stylesheet" href="./conan.css" />
     <script language="Javascript">
         const urlprefix = 'https://conan.compiler-explorer.com';
         let chart;
         let cpplibraries;
         let rustlibraries;
+        const minRange = 20;
 
         function loadChart() {
             d3.csv('https://compiler-explorer.s3.amazonaws.com/public/library_usage.csv')
-                .then(makeChart);
+                .then(data => {
+                    makeChart(data)
+                });
         }
 
         function loadCppLibraries(done) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', urlprefix + '/libraries/cpp');
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.onload = () => {
-                const info = JSON.parse(xhr.responseText);
-                cpplibraries = Object.keys(info);
-                done[0](done.slice(1));
-            };
-            xhr.send();
+            // const xhr = new XMLHttpRequest();
+            // xhr.open('GET', urlprefix + '/libraries/cpp');
+            // xhr.setRequestHeader('Content-Type', 'application/json');
+            // xhr.onload = () => {
+            //     const info = JSON.parse(xhr.responseText);
+            //     cpplibraries = Object.keys(info);
+            //     done[0](done.slice(1));
+            // };
+            // xhr.send();
+            fetch(urlprefix + '/libraries/cpp' , {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(info => {
+                    cpplibraries = Object.keys(info)
+                    done[0](done.slice(1));
+                })
         }
 
         function loadRustLibraries(done) {
+            
             const xhr = new XMLHttpRequest();
             xhr.open('GET', urlprefix + '/libraries/rust');
             xhr.setRequestHeader('Content-Type', 'application/json');
@@ -70,20 +85,49 @@
                 }
             });
 
-            var datasets = [{
-                data: libraries.map((lib) => {
-                    var filteredUsageData = usage.filter((d) => d.library === lib);
-                    return _.reduce(filteredUsageData, (memo, d) => {
+            // Filter the library usage to get its total_usage as well as color and category
+            let filteredUsageData = libraries.map((lib) => {
+                    var usageData = usage.filter((d) => (d.library === lib));
+                    // Set the color for the library
+                    const color = cpplibraries.includes(lib) ? 'rgba(255, 0, 0, 0.2)'
+                                                    : rustlibraries.includes(lib) ? 'rgba(0, 0, 255, 0.2)' 
+                                                    : 'rgba(127, 127, 127, 0.2)';
+                    // Set the category for which the library belongs
+                    const category = cpplibraries.includes(lib) ? 'cpp'
+                                                    : rustlibraries.includes(lib) ? 'rust' 
+                                                    : 'others';
+                    return {
+                        'library': lib,
+                        color,
+                        category,
+                        'usage': _.reduce(usageData, (memo, d) => {
                             return memo + parseInt(d.times_used);
-                        }, 0);
-                    }),
-                backgroundColor: colors
+                            }, 0),
+                        }
+                    })
+            
+            // Get the libraries to display on chart 
+            // and that which will not be on the chart
+            let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
+            let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
+            console.log(dataOnChart)
+            
+            // Display libraries not on chart as un-ordered list
+            dataNotOnChart.forEach( info => {
+                $('#notOnChart').append(`<li> ${info.library} (${info.category}) - ${info.usage} </li>`)
+            })
+            
+            var datasets = [{
+                data: dataOnChart.map(x => x.usage),
+                backgroundColor: dataOnChart.map(x => x.color)
             }];
+
+            // console.log(datasets)
 
             var chart = new Chart('chart', {
                 type: 'horizontalBar',
                 data: {
-                    labels: libraries,
+                    labels: libraries.slice(0, dataOnChart.length),
                     datasets: datasets
                 },
                 options: {
@@ -111,11 +155,16 @@
     <canvas id="chart"></canvas>
 
     <div>&nbsp;</div>
-    <div>
-        <p><strong>About this graph</strong></p>
+    <div class="mx-4">
+        <h3><strong>About this graph</strong></h3>
         <p>
             This graph shows a snapshot (<em>between <span id="from"></span> and <span id="to"></span></em>) of library usage (unsorted) when using Binary mode or Execution of Cpp libraries (red bars),
             and for the Rust libraries (blue bars) it shows all usage.
+        </p>
+        <h4>Libraries not displayed on the chart</h4>
+        <p>
+            <ul id="notOnChart"></ul>
+
         </p>
         <p>
             It does not contain all library usage, none of the header-only libraries are included, and some libraries are not stored in conan (openssl, hdf5, libuv, lua, nsimd).
