@@ -110,7 +110,7 @@
             // and that which will not be on the chart
             let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
             let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
-            console.log(dataOnChart)
+            
             
             // Display libraries not on chart as un-ordered list
             dataNotOnChart.forEach( info => {
@@ -121,8 +121,6 @@
                 data: dataOnChart.map(x => x.usage),
                 backgroundColor: dataOnChart.map(x => x.color)
             }];
-
-            // console.log(datasets)
 
             var chart = new Chart('chart', {
                 type: 'horizontalBar',
