@@ -140,6 +140,9 @@
                         }
                     })
             
+            // Sort the data in Descending order
+            filteredUsageData = filteredUsageData.sort((a, b) => b.usage - a.usage)
+            
             // Get the libraries to display on chart 
             // and that which will not be on the chart
             let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);

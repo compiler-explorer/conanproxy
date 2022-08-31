@@ -97,6 +97,9 @@
                             }, 0),
                         }
                     })
+
+            // Sort the data in Descending order
+            filteredUsageData = filteredUsageData.sort((a, b) => b.usage - a.usage)
             
             // Get the libraries to display on chart 
             // and that which will not be on the chart
@@ -117,7 +120,7 @@
             var chart = new Chart('chart', {
                 type: 'horizontalBar',
                 data: {
-                    labels: libraries.slice(0, dataOnChart.length),
+                    labels: dataOnChart.map(lib => lib.library),
                     datasets: datasets
                 },
                 options: {
