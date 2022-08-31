@@ -286,6 +286,7 @@ function main() {
                 '/compilerfailurerates.html',
                 '/failedbuilds.html',
                 '/usage.html',
+                '/usage-d3.html',
                 '/conan.css',
                 '/favicon.ico',
                 '/login',
