@@ -53,6 +53,7 @@
                     'Content-Type': 'application/json'
                 }
             })
+            .then(response => response.json())
             .then(info => {
                 rustlibraries = Object.keys(info)
                 done[0](done.slice(1))

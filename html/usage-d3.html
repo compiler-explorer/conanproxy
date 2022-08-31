@@ -89,7 +89,9 @@
                     'Content-Type': 'application/json'
                 }
             })
+            .then(response => response.json())
             .then(info => {
+                console.log(info)
                 rustlibraries = Object.keys(info)
                 done[0](done.slice(1))
             })
@@ -142,8 +144,8 @@
             // Get the libraries to display on chart 
             // and that which will not be on the chart
             let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
-            let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
-
+            let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange);
+            console.log(rustlibraries)
             
             // Display libraries not on chart as un-ordered list
             dataNotOnChart.forEach( info => {
