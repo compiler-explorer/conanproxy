@@ -31,15 +31,7 @@
         }
 
         function loadCppLibraries(done) {
-            // const xhr = new XMLHttpRequest();
-            // xhr.open('GET', urlprefix + '/libraries/cpp');
-            // xhr.setRequestHeader('Content-Type', 'application/json');
-            // xhr.onload = () => {
-            //     const info = JSON.parse(xhr.responseText);
-            //     cpplibraries = Object.keys(info);
-            //     done[0](done.slice(1));
-            // };
-            // xhr.send();
+            
             fetch(urlprefix + '/libraries/cpp' , {
                     method: 'GET',
                     headers: {
@@ -55,15 +47,16 @@
 
         function loadRustLibraries(done) {
             
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', urlprefix + '/libraries/rust');
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.onload = () => {
-                const info = JSON.parse(xhr.responseText);
-                rustlibraries = Object.keys(info);
-                done[0](done.slice(1));
-            };
-            xhr.send();
+            fetch(urlprefix + '/libraries/rust', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(info => {
+                rustlibraries = Object.keys(info)
+                done[0](done.slice(1))
+            })
         }
 
         function makeChart(usage) {
