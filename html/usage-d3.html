@@ -89,6 +89,7 @@
                     'Content-Type': 'application/json'
                 }
             })
+            .then(response => response.json())
             .then(info => {
                 rustlibraries = Object.keys(info)
                 done[0](done.slice(1))
@@ -103,7 +104,7 @@
 
             var xScale = d3.scaleLinear()
                             .range([0, width])
-            var   yScale = d3.scaleBand()
+            var yScale = d3.scaleBand()
                             .range([0, height]).padding(0.3)
 
             var g = svg.append("g").attr("transform", "translate("+ margin.left+","+margin.top+")")
@@ -143,7 +144,6 @@
             // and that which will not be on the chart
             let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
             let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
-
             
             // Display libraries not on chart as un-ordered list
             dataNotOnChart.forEach( info => {
