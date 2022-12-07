@@ -22,7 +22,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "cross-env": "^7.0.2",
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "express-jwt": "^6.0.0",
     "http-proxy": "^1.18.1",
     "sql-template-strings": "^2.2.2",
