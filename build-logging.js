@@ -65,14 +65,14 @@ class BuildLogging {
         await stmt.run();
     }
 
-    async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging) {
+    async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging, commithash) {
         const now = this.getCurrentDateStr();
 
         const stmt = await this.connection.prepare(
             `replace into latest
-            ( library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging)
+            ( library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging, commithash)
             values
-            ( @library, @library_version, @compiler, @compiler_version, @arch, @libcxx, @compiler_flags, 0, @now, @logging);`);
+            ( @library, @library_version, @compiler, @compiler_version, @arch, @libcxx, @compiler_flags, 0, @now, @logging, @commithash);`);
 
         await stmt.bind({
             '@library': library,
@@ -83,7 +83,8 @@ class BuildLogging {
             '@libcxx': libcxx,
             '@compiler_flags': compiler_flags,
             '@now': now,
-            '@logging': logging
+            '@logging': logging,
+            '@commithash': commithash,
         });
 
         await stmt.run();
@@ -127,7 +128,7 @@ class BuildLogging {
 
     async hasFailedBefore(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags) {
         const stmt = await this.connection.prepare(
-            `select success
+            `select success, commithash
                  from latest
                 where library=@library
                   and library_version=@library_version
@@ -150,9 +151,15 @@ class BuildLogging {
 
         const results = await stmt.all();
         if (results.length > 0) {
-            return results[0].success === 0;
+            return {
+                failedbefore: results[0].success === 0,
+                commithash: results[0].commithash
+            };
         } else {
-            return false;
+            return {
+                failedbefore: false,
+                commithash: ''
+            };
         }
     }
 }
