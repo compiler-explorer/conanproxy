@@ -287,6 +287,7 @@ function main() {
                 '/failedbuilds.html',
                 '/usage.html',
                 '/usage-d3.html',
+                '/compiler_usage.html',
                 '/conan.css',
                 '/favicon.ico',
                 '/login',
