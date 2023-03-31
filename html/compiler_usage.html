@@ -1,0 +1,134 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/underscore@1.13.4/underscore-umd-min.js"></script>
+    <link rel="stylesheet" href="./conan.css" />
+    <script language="Javascript">
+        const urlprefix = 'https://conan.compiler-explorer.com';
+        let chart;
+        let cpplibraries;
+        let rustlibraries;
+        const minRange = 30000;
+
+        function loadChart() {
+            d3.csv('https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv')
+                .then(data => {
+                    makeChart(data)
+                });
+        }
+
+        // todo: load compilers from http://compiler-explorer.com/api/compilers and categorize by language
+
+        function makeChart(usage) {
+            const compilers = _.unique(usage.map((d) => d.compiler));
+
+            const minDate = new Date(_.min(usage.map((d) => Date.parse(d.first_used))));
+            const maxDate = new Date(_.max(usage.map((d) => Date.parse(d.last_used))));
+
+            $('#from').html(minDate.toDateString());
+            $('#to').html(maxDate.toDateString());
+
+            const colors = compilers.map((compiler) => {
+                return 'rgba(127, 127, 127, 0.2)';
+            });
+
+            // Filter the library usage to get its total_usage as well as color and category
+            let filteredUsageData = compilers.map((compiler) => {
+                    var usageData = usage.filter((d) => (d.compiler === compiler));
+                    // // Set the color for the library
+                    const color = 'rgba(127, 127, 127, 0.2)';
+                    // const color = cpplibraries.includes(compiler) ? 'rgba(255, 0, 0, 0.2)'
+                    //                                 : rustlibraries.includes(lib) ? 'rgba(0, 0, 255, 0.2)' 
+                    //                                 : 'rgba(127, 127, 127, 0.2)';
+                    // // Set the category for which the library belongs
+                    const category = 'compilers';
+                    // const category = cpplibraries.includes(lcompilerib) ? 'cpp'
+                    //                                 : rustlibraries.includes(lib) ? 'rust' 
+                    //                                 : 'others';
+                    return {
+                        'compiler': compiler,
+                        color,
+                        category,
+                        'usage': _.reduce(usageData, (memo, d) => {
+                            return memo + parseInt(d.times_used);
+                            }, 0),
+                        }
+                    })
+
+            // Sort the data in Descending order
+            filteredUsageData = filteredUsageData.sort((a, b) => b.usage - a.usage)
+            
+            // Get the libraries to display on chart 
+            // and that which will not be on the chart
+            let dataOnChart = filteredUsageData.filter(x => x.usage >= minRange);
+            let dataNotOnChart = filteredUsageData.filter(x => x.usage < minRange)
+            
+            
+            // Display libraries not on chart as un-ordered list
+            dataNotOnChart.forEach( info => {
+                $('#notOnChart').append(`<li> ${info.compiler} (${info.category}) - ${info.usage} </li>`)
+            })
+            
+            var datasets = [{
+                data: dataOnChart.map(x => x.usage),
+                backgroundColor: dataOnChart.map(x => x.color)
+            }];
+
+            var chart = new Chart('chart', {
+                type: 'horizontalBar',
+                data: {
+                    labels: dataOnChart.map(compiler => compiler.compiler),
+                    datasets: datasets
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            loadChart();
+        });
+    </script>
+    <title>CE - Compiler usage data</title>
+</head>
+
+<body>
+    <canvas id="chart"></canvas>
+
+    <div>&nbsp;</div>
+    <div class="mx-4">
+        <h3><strong>About this graph</strong></h3>
+        <p>
+            This graph shows a snapshot (<em>between <span id="from"></span> and <span id="to"></span></em>) of compiler usage.
+        </p>
+        <h4>Compiler not displayed on the chart</h4>
+        <p>
+            <ul id="notOnChart"></ul>
+
+        </p>
+    </div>
+</body>
+
+</html>
