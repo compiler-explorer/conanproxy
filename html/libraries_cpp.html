@@ -42,6 +42,8 @@
                     matrixNode.hide();
                     librariesNode.append(matrixNode);
                 });
+
+                onLibrariesLoaded();
             };
             xhr.send();
         }
@@ -173,6 +175,21 @@
             const matrixNode = $("#" + libraryId);
             refreshMatrix(libraryId, version, matrixNode);
             matrixNode.show();
+        }
+
+        function onLibrariesLoaded() {
+            const lookup = window.location.hash.substring(1);
+            if (lookup) {
+                const libAndVer = lookup.split("/");
+                if (libAndVer.length === 2) {
+                    const libraryId = libAndVer[0];
+                    const version = libAndVer[1];
+                    const matrixNode = $("#" + libraryId);
+                    refreshMatrix(libraryId, version, matrixNode);
+                    matrixNode.show();
+                    matrixNode[0].scrollIntoView();
+                }
+            }
         }
 
         $(document).ready(() => {

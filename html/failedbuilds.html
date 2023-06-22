@@ -44,6 +44,7 @@
                     }
                 }
 
+                onLibrariesLoaded();
             };
             xhr.send();
         }
@@ -60,6 +61,7 @@
                 Object.keys(info).forEach(libraryId => {
                     const library = info[libraryId];
                     const row = $("<tr class='libraryrow'><td class='libraryname' /><td class='libraryversions' /></tr>");
+                    row.attr('id', library.name);
                     row.find('.libraryname').html(library.name);
                     Object.keys(library.versions).forEach(versionId => {
                         const version = library.versions[versionId];
@@ -108,11 +110,7 @@
             return year + '-' + month + '-' + day + ' ' + hour + ':' + min + ':' + sec;
         }
 
-        function toggleMatrix() {
-            const versionlink = $(this);
-            const libraryId = versionlink.data('libraryId');
-            const version = versionlink.data('version');
-
+        function toggleMatrixOfLibVer(libraryId, version) {
             const matrixNode = $("#" + libraryId + " ");
             const matrixNodeTD = matrixNode.find("td.libraryfailedbuilds");
             matrixNodeTD.html("");
@@ -161,6 +159,25 @@
 
             matrixNodeTD.append(matrixTable);
             matrixNode.show();
+        }
+
+        function toggleMatrix() {
+            const versionlink = $(this);
+            const libraryId = versionlink.data('libraryId');
+            const version = versionlink.data('version');
+
+            toggleMatrixOfLibVer(libraryId, version);
+        }
+
+        function onLibrariesLoaded() {
+            const lookup = window.location.hash.substring(1);
+            if (lookup) {
+                const libAndVer = lookup.split("/");
+                if (libAndVer.length === 2) {
+                    toggleMatrixOfLibVer(libAndVer[0], libAndVer[1]);
+                    $("#" + libAndVer[0])[0].scrollIntoView();
+                }
+            }
         }
 
         $(document).ready(() => {
