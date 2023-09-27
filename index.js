@@ -52,7 +52,7 @@ async function getConanBinaries(library, version) {
                     try {
                         jsdata = JSON.parse(data);
                     } catch (e) {
-                        resolve({});
+                        reject(e);
                         return;
                     }
 
@@ -386,8 +386,13 @@ function main() {
             res.send();
         })
         .get('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
-            const all = await getConanBinaries(req.params.libraryid, req.params.version);
-            res.send(all);
+            try {
+                const all = await getConanBinaries(req.params.libraryid, req.params.version);
+                res.send(all);
+            } catch (e) {
+                console.error(e);
+                res.send({});
+            }
         })
         .options('/downloadcshared/:libraryid/:version', libraryexpireheaders, async (req, res) => {
             res.send();
@@ -409,6 +414,7 @@ function main() {
 
                 if (!found) res.sendStatus(404);
             } catch (e) {
+                console.error(e);
                 res.send(e);
             }
         })
