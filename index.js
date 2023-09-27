@@ -392,10 +392,10 @@ function main() {
         })
         .get('/downloadcshared/:libraryid/:version', libraryexpireheaders, async (req, res) => {
             let found = false;
-            const all = await getConanBinaries(req.params.libraryid, req.params.version);
-            for (const compiler of all.perCompiler) {
-                if (compiler.cshared) {
-                    if (compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
+            try {
+                const all = await getConanBinaries(req.params.libraryid, req.params.version);
+                for (const compiler of all.perCompiler) {
+                    if (compiler.cshared && compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
                         const hash = compiler.cshared.hashes[0];
                         const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
                         if (url && url['conan_package.tgz']) {
@@ -404,6 +404,8 @@ function main() {
                         }
                     }
                 }
+            } catch (e) {
+                res.send(e);
             }
 
             if (!found) res.sendStatus(404);
