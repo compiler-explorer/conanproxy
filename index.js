@@ -406,8 +406,8 @@ function main() {
                     console.log('iteration ' + id);
                     console.log('compiler: ' + JSON.stringify(compiler));
 
-                    if (compiler.cshared && compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
-                        const hash = compiler.cshared.hashes[0];
+                    if (id === 'cshared' && compiler && compiler.hashes && compiler.hashes.length === 1) {
+                        const hash = compiler.hashes[0];
                         console.log('hash ' + hash);
                         const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
                         if (url && url['conan_package.tgz']) {
