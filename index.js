@@ -105,7 +105,7 @@ async function getConanBinaries(library, version) {
 }
 
 async function getPackageUrl(libid, version, hash) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const encLibid = encodeURIComponent(libid);
         const encVersion = encodeURIComponent(version);
         const libUrl = `${conanserverurl}/v1/conans/${encLibid}/${encVersion}/${encLibid}/${encVersion}`;
@@ -121,7 +121,7 @@ async function getPackageUrl(libid, version, hash) {
                     resolve(jsdata);
                     return;
                 } catch (e) {
-                    resolve({});
+                    reject(`No package found at ${url}`);
                     return;
                 }
             });
