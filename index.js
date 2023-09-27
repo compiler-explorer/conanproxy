@@ -127,7 +127,7 @@ async function getPackageUrl(libid, version, hash) {
             });
         }).on('error', (err) => {
             reject(err);
-        });;
+        });
     });
 }
 
@@ -401,7 +401,9 @@ function main() {
             let found = false;
             try {
                 const all = await getConanBinaries(req.params.libraryid, req.params.version);
-                for (const compiler of all.perCompiler) {
+                for (const id of Object.keys(all.perCompiler)) {
+                    const compiler = all.perCompiler[id];
+
                     if (compiler.cshared && compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
                         const hash = compiler.cshared.hashes[0];
                         const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
