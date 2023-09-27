@@ -403,9 +403,12 @@ function main() {
                 const all = await getConanBinaries(req.params.libraryid, req.params.version);
                 for (const id of Object.keys(all.perCompiler)) {
                     const compiler = all.perCompiler[id];
+                    console.log('iteration ' + id);
+                    console.log('compiler: ' + JSON.stringify(compiler));
 
                     if (compiler.cshared && compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
                         const hash = compiler.cshared.hashes[0];
+                        console.log('hash ' + hash);
                         const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
                         if (url && url['conan_package.tgz']) {
                             found = true;
