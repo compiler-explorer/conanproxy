@@ -125,7 +125,9 @@ async function getPackageUrl(libid, version, hash) {
                     return;
                 }
             });
-        });
+        }).on('error', (err) => {
+            reject(err);
+        });;
     });
 }
 
