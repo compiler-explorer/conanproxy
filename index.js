@@ -104,6 +104,31 @@ async function getConanBinaries(library, version) {
     });
 }
 
+async function getPackageUrl(libid, version, hash) {
+    return new Promise((resolve) => {
+        const encLibid = encodeURIComponent(libid);
+        const encVersion = encodeURIComponent(version);
+        const libUrl = `${conanserverurl}/v1/conans/${encLibid}/${encVersion}/${encLibid}/${encVersion}`;
+        const url = `${libUrl}/packages/${hash}/download_urls`;
+
+        http.get(url, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                let jsdata = null;
+                try {
+                    jsdata = JSON.parse(data);
+                    resolve(jsdata);
+                    return;
+                } catch (e) {
+                    resolve({});
+                    return;
+                }
+            });
+        });
+    });
+}
+
 async function refreshCECompilers() {
     return new Promise((resolve, reject) => {
         https.get(`${ceserverurl}/api/compilers`, { headers: { Accept: 'application/json' } }, (resp) => {
@@ -301,6 +326,7 @@ function main() {
                 '/allfailedbuilds',
                 /^\/getlogging\/[0-9]*/,
                 /^\/binaries\/.*/,
+                /^\/downloadcshared\/.*/,
                 {
                     url: /^\/annotations\/.*/,
                     methods: ['GET', 'OPTIONS']
@@ -360,6 +386,27 @@ function main() {
         .get('/binaries/:libraryid/:version', libraryexpireheaders, async (req, res) => {
             const all = await getConanBinaries(req.params.libraryid, req.params.version);
             res.send(all);
+        })
+        .options('/downloadcshared/:libraryid/:version', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/downloadcshared/:libraryid/:version', libraryexpireheaders, async (req, res) => {
+            let found = false;
+            const all = await getConanBinaries(req.params.libraryid, req.params.version);
+            for (const compiler of all.perCompiler) {
+                if (compiler.cshared) {
+                    if (compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
+                        const hash = compiler.cshared.hashes[0];
+                        const url = getPackageUrl(req.params.libraryid, req.params.version, hash);
+                        if (url && url['conan_package.tgz']) {
+                            found = true;
+                            res.redirect(302, url['conan_package.tgz']);
+                        }
+                    }
+                }
+            }
+
+            if (!found) res.sendStatus(404);
         })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
