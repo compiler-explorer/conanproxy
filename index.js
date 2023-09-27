@@ -397,7 +397,7 @@ function main() {
                 if (compiler.cshared) {
                     if (compiler.cshared.hashes && compiler.cshared.hashes.length === 1) {
                         const hash = compiler.cshared.hashes[0];
-                        const url = getPackageUrl(req.params.libraryid, req.params.version, hash);
+                        const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
                         if (url && url['conan_package.tgz']) {
                             found = true;
                             res.redirect(302, url['conan_package.tgz']);
