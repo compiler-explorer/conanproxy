@@ -406,11 +406,11 @@ function main() {
                         }
                     }
                 }
+
+                if (!found) res.sendStatus(404);
             } catch (e) {
                 res.send(e);
             }
-
-            if (!found) res.sendStatus(404);
         })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
