@@ -25,6 +25,7 @@ const buildlogspath = conanserverroot + '/buildslogs.db';
 let compilernames = null;
 let allRustLibrariesAndVersions = null;
 let allCppLibrariesAndVersions = null;
+let allFortranLibrariesAndVersions = null;
 
 let availableLibrariesAndVersions = {};
 let availableLibraryIds = [];
@@ -177,6 +178,18 @@ async function refreshCELibraries() {
             console.error(err);
             reject(err);
         });
+
+        https.get(`${ceserverurl}/api/libraries/fortran`, { headers: { Accept: 'application/json' } }, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                allFortranLibrariesAndVersions = JSON.parse(data);
+                resolve(true);
+            });
+        }).on('error', (err) => {
+            console.error(err);
+            reject(err);
+        });
     });
 }
 
@@ -222,7 +235,12 @@ async function refreshConanLibraries(forceall) {
             let ceLib = _.find(allCppLibrariesAndVersions, (lib) => lib.id === libraryId);
             if (!ceLib) {
                 ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
-                if (ceLib) language = 'rust';
+                if (ceLib) {
+                    language = 'rust'
+                } else {
+                    ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
+                    if (ceLib) language = 'fortran';
+                }
             }
 
             if (!ceLib && forceall) ceLib = { name: libraryId, versions: {} };
@@ -310,6 +328,7 @@ function main() {
                 '/libraries.html',
                 '/libraries_rust.html',
                 '/libraries_cpp.html',
+                '/libraries_fortran.html',
                 '/compilerfailurerates.html',
                 '/failedbuilds.html',
                 '/usage.html',
@@ -322,6 +341,7 @@ function main() {
                 '/reinitialize',
                 '/libraries/cpp',
                 '/libraries/rust',
+                '/libraries/fortran',
                 '/libraries',
                 '/compilerfailurerates',
                 '/hasfailedbefore',
@@ -373,6 +393,16 @@ function main() {
             const filteredlibs = {};
             _.each(availableLibrariesAndVersions, (lib, id) => {
                 if (lib.language === 'rust') filteredlibs[id] = lib;
+            });
+            res.send(filteredlibs);
+        })
+        .options('/libraries/fortran', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/libraries/fortran', libraryexpireheaders, async (req, res) => {
+            const filteredlibs = {};
+            _.each(availableLibrariesAndVersions, (lib, id) => {
+                if (lib.language === 'fortran') filteredlibs[id] = lib;
             });
             res.send(filteredlibs);
         })
