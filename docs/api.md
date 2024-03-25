@@ -54,6 +54,33 @@ Returns:
 ```
 
 
+### POST `/whathasfailedbefore`
+
+To query if a certain build configuration has failed before for a particular library and version.
+
+If the build has failed before, it will include the commithash with which it failed (if that was supplied with `/buildfailed`)
+
+Payload example:
+```
+{
+    "library": "fmt",
+    "library_version": "4.0.0",
+    "compiler": "gcc",
+    "compiler_version": "gcc-embed-trunk",
+    "arch": "x86_64",
+    "libcxx": "libstdc++",
+    "flagcollection": ""
+}
+```
+
+Returns:
+```
+{
+    "response": true,
+    "commithash": "1234abcd"
+}
+```
+
 ### GET `/annotations/:libraryid/:version/:buildhash`
 
 Annotations are json documents that are saved next to a certain library version and build.
@@ -124,7 +151,8 @@ Payload example:
     "arch": "x86_64",
     "libcxx": "libstdc++",
     "flagcollection": "",
-    "logging": "This was a complete failure, never try to build this again!"
+    "logging": "This was a complete failure, never try to build this again!",
+    "commithash": "1234abcd"
 }
 ```
 

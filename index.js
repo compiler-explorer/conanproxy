@@ -473,7 +473,8 @@ function main() {
                 data.arch,
                 data.libcxx,
                 data.flagcollection,
-                data.logging
+                data.logging,
+                data.commithash
             );
             res.send("OK");
         })
@@ -515,7 +516,23 @@ function main() {
                 data.flagcollection
             );
             res.send({
-                response: answer
+                response: answer.failedbefore
+            });
+        })
+        .post('/whathasfailedbefore', expireshourly, async (req, res) => {
+            const data = req.body;
+            const answer = await buildlogging.hasFailedBefore(
+                data.library,
+                data.library_version,
+                data.compiler,
+                data.compiler_version,
+                data.arch,
+                data.libcxx,
+                data.flagcollection
+            );
+            res.send({
+                response: answer.failedbefore,
+                commithash: answer.commithash
             });
         })
         .options('/allfailedbuilds', expireshourly, async (req, res) => {
