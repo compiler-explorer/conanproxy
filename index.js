@@ -345,6 +345,7 @@ function main() {
                 '/libraries',
                 '/compilerfailurerates',
                 '/hasfailedbefore',
+                '/whathasfailedbefore',
                 '/allfailedbuilds',
                 /^\/getlogging\/[0-9]*/,
                 /^\/binaries\/.*/,
