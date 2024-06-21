@@ -5,7 +5,7 @@ const
     { BuildAnnotations } = require('./build-annotations'),
     { BuildLogging } = require('./build-logging'),
     express = require('express'),
-    expressjwt = require('express-jwt'),
+    { expressjwt } = require('express-jwt'),
     jwt = require('jsonwebtoken'),
     cors = require('cors'),
     httpProxy = require('http-proxy'),
@@ -236,7 +236,7 @@ async function refreshConanLibraries(forceall) {
             if (!ceLib) {
                 ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
                 if (ceLib) {
-                    language = 'rust'
+                    language = 'rust';
                 } else {
                     ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
                     if (ceLib) language = 'fortran';
@@ -453,6 +453,10 @@ function main() {
         })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
+            res.send(data);
+        })
+        .get('/annotations/:libraryid/:version', expireshourly, async (req, res) => {
+            const data = await annotations.readAllAnnotations(req.params.libraryid, req.params.version);
             res.send(data);
         })
         .post('/annotations/:libraryid/:version/:buildhash', nocache, async (req, res) => {
