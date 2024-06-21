@@ -236,7 +236,7 @@ async function refreshConanLibraries(forceall) {
             if (!ceLib) {
                 ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
                 if (ceLib) {
-                    language = 'rust'
+                    language = 'rust';
                 } else {
                     ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
                     if (ceLib) language = 'fortran';
