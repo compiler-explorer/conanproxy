@@ -5,7 +5,7 @@ const
     { BuildAnnotations } = require('./build-annotations'),
     { BuildLogging } = require('./build-logging'),
     express = require('express'),
-    expressjwt = require('express-jwt'),
+    { expressjwt } = require('express-jwt'),
     jwt = require('jsonwebtoken'),
     cors = require('cors'),
     httpProxy = require('http-proxy'),
