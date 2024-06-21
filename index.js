@@ -455,6 +455,10 @@ function main() {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
             res.send(data);
         })
+        .get('/annotations/:libraryid/:version', expireshourly, async (req, res) => {
+            const data = await annotations.readAllAnnotations(req.params.libraryid, req.params.version);
+            res.send(data);
+        })
         .post('/annotations/:libraryid/:version/:buildhash', nocache, async (req, res) => {
             const data = req.body;
             try {
