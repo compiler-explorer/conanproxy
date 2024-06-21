@@ -81,8 +81,8 @@ class BuildAnnotations {
 
                 const details = {
                     buildhash: buildhash,
-                    buildInfo: await this.readAnnotationFromFile(annotationFilepath),
-                    compilerInfo: await this.readConanInfoFromFile(infoFilepath),
+                    annotation: await this.readAnnotationFromFile(annotationFilepath),
+                    buildinfo: await this.readConanInfoFromFile(infoFilepath),
                 };
 
                 allAnnotations.push(details);
