@@ -71,22 +71,26 @@ class BuildAnnotations {
 
         const allAnnotations = [];
 
-        const dir = await fs.opendir(rootpath);
-        for await (const dirent of dir) {
-            if (dirent.isDirectory()) {
-                const buildhash = dirent.name;
+        try {
+            const dir = await fs.opendir(rootpath);
+            for await (const dirent of dir) {
+                if (dirent.isDirectory()) {
+                    const buildhash = dirent.name;
 
-                const annotationFilepath = this.getAnnotationsFilepath(library, version, buildhash);
-                const infoFilepath = this.getConanInfoFilepath(library, version, buildhash);
+                    const annotationFilepath = this.getAnnotationsFilepath(library, version, buildhash);
+                    const infoFilepath = this.getConanInfoFilepath(library, version, buildhash);
 
-                const details = {
-                    buildhash: buildhash,
-                    annotation: await this.readAnnotationFromFile(annotationFilepath),
-                    buildinfo: await this.readConanInfoFromFile(infoFilepath),
-                };
+                    const details = {
+                        buildhash: buildhash,
+                        annotation: await this.readAnnotationFromFile(annotationFilepath),
+                        buildinfo: await this.readConanInfoFromFile(infoFilepath),
+                    };
 
-                allAnnotations.push(details);
+                    allAnnotations.push(details);
+                }
             }
+        } catch (e) {
+            console.error(e);
         }
 
         return allAnnotations;
