@@ -209,7 +209,13 @@ function newProxy() {
         }
 
         if (contentType === 'application/x-www-form-urlencoded') {
-            bodyData = req.body;
+            if (typeof req.body !== 'string') {
+                bodyData = _.map(req.body, (value, key) => {
+                    return encodeURIComponent(key) + '=' + encodeURIComponent(value);
+                }).join('&');
+            } else {
+                bodyData = req.body;
+            }
         }
 
         if (bodyData) {
