@@ -74,7 +74,7 @@
                 let content = "";
                 content += "buildhash: " + buildhash + "<br />";
                 Object.keys(info).forEach(key => {
-                    content += key + ": " + info[key] + "<br />";
+                    if (key !== 'error') content += key + ": " + info[key] + "<br />";
                 });
 
                 fetchDownloadUrls(libraryid, version, buildhash, function(urls) {
