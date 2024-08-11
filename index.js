@@ -457,6 +457,33 @@ function main() {
                 res.send(e);
             }
         })
+        .options('/downloadpkg/:libraryid/:version/:compiler', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/downloadpkg/:libraryid/:version/:compiler', libraryexpireheaders, async (req, res) => {
+            let found = false;
+            try {
+                const all = await getConanBinaries(req.params.libraryid, req.params.version);
+                for (const id of Object.keys(all.perCompiler)) {
+                    const compiler = all.perCompiler[id];
+
+                    // note: only works if there's only 1 binary for the given compiler
+                    if (id === req.params.compiler && compiler && compiler.hashes && compiler.hashes.length === 1) {
+                        const hash = compiler.hashes[0];
+                        const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
+                        if (url && url['conan_package.tgz']) {
+                            found = true;
+                            res.redirect(302, url['conan_package.tgz']);
+                        }
+                    }
+                }
+
+                if (!found) res.sendStatus(404);
+            } catch (e) {
+                console.error(e);
+                res.send(e);
+            }
+        })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
             res.send(data);
