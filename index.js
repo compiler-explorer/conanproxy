@@ -356,6 +356,7 @@ function main() {
                 /^\/getlogging\/[0-9]*/,
                 /^\/binaries\/.*/,
                 /^\/downloadcshared\/.*/,
+                /^\/downloadpkg\/.*/,
                 {
                     url: /^\/annotations\/.*/,
                     methods: ['GET', 'OPTIONS']
