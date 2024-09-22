@@ -584,8 +584,8 @@ function main() {
         .options('/getlogging', expireshourly, async (req, res) => {
             res.send();
         })
-        .get('/getlogging/:dt', expireshourly, async (req, res) => {
-            const logging = await buildlogging.getLogging(req.params.dt);
+        .get('/getlogging/:library/:library_version/:arch/:dt', expireshourly, async (req, res) => {
+            const logging = await buildlogging.getLogging(req.params.library, req.params.library_version, req.params.arch.trim(), req.params.dt);
 
             if (logging) {
                 const entry = logging[0];

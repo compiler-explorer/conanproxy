@@ -99,14 +99,17 @@ class BuildLogging {
         return results;
     }
 
-    async getLogging(build_dt) {
+    async getLogging(library, library_version, arch, build_dt) {
         const stmt = await this.connection.prepare(
             `select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging
                  from latest
-                where build_dt=@build_dt`
+                where library=@library and library_version=@library_version and arch=@arch and build_dt=@build_dt`
         );
 
         await stmt.bind({
+            '@library': library,
+            '@library_version': library_version,
+            '@arch': arch,
             '@build_dt': build_dt
         });
 

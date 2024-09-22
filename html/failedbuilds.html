@@ -149,7 +149,7 @@
                     row.find('.extraflags').html(build.compiler_flags);
 
                     const downloadlink = $("<a />");
-                    downloadlink.attr("href", urlprefix + "/getlogging/" + build.build_dt);
+                    downloadlink.attr("href", urlprefix + "/getlogging/" + build.library + "/" + build.library_version + "/" + (build.arch || '%20') + '/' + build.build_dt);
                     downloadlink.html("logging");
                     row.find('.logging').append(downloadlink);
 
