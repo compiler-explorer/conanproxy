@@ -591,7 +591,12 @@ function main() {
                 const entry = logging[0];
 
                 if (logging.length > 1) {
-                    res.sendStatus(409);
+                    const filename = entry.library + "_" + entry.library_version + "_" + entry.compiler_version + "_" + entry.build_dt + ".txt";
+                    let content = '';
+                    for (const item of logging) {
+                        content = content + item.logging + '\n\n--- More entries ---\n\n';
+                    }
+                    res.header('Content-Disposition', 'attachment; filename="' + filename +'"').send(content);
                 } else if (entry && entry.library && entry.library_version && entry.compiler_version && entry.build_dt && entry.logging) {
                     const filename = entry.library + "_" + entry.library_version + "_" + entry.compiler_version + "_" + entry.build_dt + ".txt";
                     res.header('Content-Disposition', 'attachment; filename="' + filename +'"').send(entry.logging);
