@@ -18,7 +18,7 @@ class RemoteAnnotations {
             }
 
             return await response.json();
-        } catch {
+        } catch(err) {
             return {
                 error: "error"
             };
