@@ -1,11 +1,16 @@
 extends _layout.pug
 
 block prepend content
-    div
+    div(class='lib')
         div(class='libname') Library:&nbsp;
             | #{lib.name} #{lib.version}
         div(class='commit') Commit:&nbsp;
             a(href=lib.commit_url) #{lib.commit_hash}
+
+    div(class='summary')
+        div(class='totals') Success rate: #{summary.succeeded} / #{summary.total}
+        div(class='min_gcc') Min. supported GCC version: #{summary.min_gcc_ver}
+        div(class='min_clang') Min. supported Clang version: #{summary.min_clang_ver}
 
     //- if view.show_all_compilers
     //-     a(href='?allcompilers=0') Show compressed view

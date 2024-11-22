@@ -2,7 +2,8 @@ const
     pug = require('pug'),
     { BuildLogging } = require('./build-logging'),
     { BuildAnnotations } = require('./build-annotations'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    semver = require('semver');
 
 const {DynamoDBClient, ScanCommand} = require ('@aws-sdk/client-dynamodb');
 
@@ -37,9 +38,11 @@ class CppBuildResultsView {
         };
     }
 
-    async get(library, library_version, commit_hash, show_all_compilers) {
-        const lib_key = `${library}#${library_version}#${commit_hash}`;
+    create_library_key(library, library_version, commit_hash) {
+        return `${library}#${library_version}#${commit_hash}`;
+    }
 
+    async list_all_results(lib_key) {
         const scanCommand = new ScanCommand({
             TableName: 'library-build-history',
             ProjectionExpression: 'compiler,success',
@@ -54,7 +57,12 @@ class CppBuildResultsView {
             },
         });
 
-        const scan_result = await this.ddbClient.send(scanCommand);
+        return this.ddbClient.send(scanCommand);
+    }
+
+    async get(library, library_version, commit_hash, show_all_compilers) {
+        const lib_key = this.create_library_key(library, library_version, commit_hash);
+        const scan_result = await this.list_all_results(lib_key);
 
         const compilers_with_results = _.map(scan_result.Items, (item) => {
             return {
@@ -65,6 +73,18 @@ class CppBuildResultsView {
 
         compilers_with_results.sort((a, b) => a.compiler_version > b.compiler_version);
 
+        const succeeded_compilers = compilers_with_results.filter(result => result.success === 'ok');
+
+        const total = compilers_with_results.length;
+        const succeeded = succeeded_compilers.length;
+        const failed = total - succeeded;
+
+        const gcc_semvers = succeeded_compilers.filter(result => result.compiler === 'gcc').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
+        const min_gcc_ver = _.first(semver.sort(gcc_semvers));
+
+        const clang_semvers = succeeded_compilers.filter(result => result.compiler === 'clang').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
+        const min_clang_ver = _.first(semver.sort(clang_semvers));
+
         return await this.results_view({
             lib: {
                 commit_url: `https://github.com/fmtlib/fmt/commit/${commit_hash}`,
@@ -73,6 +93,13 @@ class CppBuildResultsView {
             },
             view: {
                 show_all_compilers
+            },
+            summary: {
+                total,
+                failed,
+                succeeded,
+                min_gcc_ver,
+                min_clang_ver
             },
             compilers: compilers_with_results,
         });
