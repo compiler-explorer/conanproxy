@@ -100,6 +100,9 @@
                 matrixNode.find("td").html("");
 
                 const matrixTable = $("<table class='table table-striped'><thead><tr class='binmatrixheader' /></thead><tbody /></table>");
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    matrixTable.addClass('table-dark');
+                }
                 const header = matrixTable.find('.binmatrixheader');
 
                 const tdCompiler = $("<th class='binmatrixheadercompiler' scope='col'>Compiler</th>");
@@ -194,6 +197,15 @@
 
         $(document).ready(() => {
             refreshLibraries();
+
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.querySelectorAll('.table-striped').forEach(table => {
+                    table.classList.add('table-dark');
+                });
+                document.querySelectorAll('#libraries').forEach(table => {
+                    table.classList.add('table-dark');
+                });
+            }
         });
     </script>
     <title>CE - All C++ library binaries</title>
