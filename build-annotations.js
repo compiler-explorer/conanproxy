@@ -10,7 +10,7 @@ class RemoteAnnotations {
 
     async readAnnotations(library, version, buildhash) {
         try {
-            // eslint-disable-next-line n/no-unsupported-features/node-builtins
+            // eslint-disable-next-line no-undef
             const response = await fetch(this.conanserverurl + `/annotations/${library}/${version}/${buildhash}`);
 
             if (response.status !== 200) {
