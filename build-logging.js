@@ -99,6 +99,33 @@ class BuildLogging {
         return results;
     }
 
+    async listPossibleCompilers() {
+        const results = await this.connection.all(
+            `select distinct compiler, compiler_version, arch, libcxx, compiler_flags
+               from latest
+             order by compiler asc, compiler_version asc, arch asc, libcxx asc, compiler_flags asc`);
+
+        return results;
+    }
+
+    async getBuildResultsForCommit(library, library_version, commithash) {
+        const stmt = await this.connection.prepare(
+            `select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt
+                 from latest
+                where library=@library and library_version=@library_version and commithash=@commithash`
+        );
+
+        await stmt.bind({
+            '@library': library,
+            '@library_version': library_version,
+            '@commithash': commithash
+        });
+
+        const results = await stmt.all();
+
+        return results;
+    }
+
     async getLogging(library, library_version, arch, build_dt) {
         const stmt = await this.connection.prepare(
             `select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging
