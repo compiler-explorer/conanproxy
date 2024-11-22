@@ -1,0 +1,44 @@
+extends _layout.pug
+
+block prepend content
+    div
+        div(class='libname') Library:&nbsp;
+            | #{lib.name} #{lib.version}
+        div(class='commit') Commit:&nbsp;
+            a(href=lib.commit_url) #{lib.commit_hash}
+
+    //- if view.show_all_compilers
+    //-     a(href='?allcompilers=0') Show compressed view
+    //- else
+    //-     a(href='?allcompilers=1') Show all possible compilers
+
+    table(width="100%" class="table table-striped")
+        theader
+            tr(class="binmatrixheader")
+                //- th id
+                th compiler
+                th arch
+                th libcxx
+                th success
+        tbody
+            each compiler in compilers
+                tr
+                    //- td(title=compiler.compiler_name) #{compiler.compiler_version}
+                    td
+                        if compiler.arch == ''
+                            span #{compiler.compiler_name}
+                        if compiler.arch != ''
+                            span #{compiler.compiler} #{compiler.compiler_semver}
+                    td #{compiler.arch}
+                    td #{compiler.libcxx}
+                    td(class="success")
+                        if compiler.success == 'ok'
+                            i(class='fa-solid fa-check')
+                        if compiler.success == 'failed'
+                            i(class='fa-solid fa-x')
+    script
+        | if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        |     document.querySelectorAll('.table-striped').forEach(table => {
+        |         table.classList.add('table-dark');
+        |     });
+        | }

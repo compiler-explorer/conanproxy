@@ -1,9 +1,10 @@
-
 const
     _ = require('underscore'),
     fs = require('fs').promises,
-    { BuildAnnotations } = require('./build-annotations'),
+    { BuildAnnotations, RemoteAnnotations } = require('./build-annotations'),
     { BuildLogging } = require('./build-logging'),
+    { CppBuildResultsView } = require('./cpp-build-results'),
+    path = require('path'),
     express = require('express'),
     { expressjwt } = require('express-jwt'),
     jwt = require('jsonwebtoken'),
@@ -23,6 +24,7 @@ const conanserverroot = userhome + "/.conan_server";
 const buildlogspath = conanserverroot + '/buildslogs.db';
 
 let compilernames = null;
+let compilersemvers = null;
 let allRustLibrariesAndVersions = null;
 let allCppLibrariesAndVersions = null;
 let allFortranLibrariesAndVersions = null;
@@ -140,10 +142,13 @@ async function refreshCECompilers() {
             resp.on('end', () => {
                 const jsdata = JSON.parse(data);
                 const compilers = {};
+                const compilers_semvers = {};
                 _.each(jsdata, (obj) => {
                     compilers[obj.id] = obj.name;
+                    compilers_semvers[obj.id] = obj.semver;
                 });
                 compilernames = compilers;
+                compilersemvers = compilers_semvers;
                 resolve(true);
             });
         }).on('error', (err) => {
@@ -357,6 +362,9 @@ function main() {
                 /^\/binaries\/.*/,
                 /^\/downloadcshared\/.*/,
                 /^\/downloadpkg\/.*/,
+                /^\/cpp_library_build_results\/.*/,
+                '/fontawesome-free.min.css',
+                /^\/webfonts\/.*/,
                 {
                     url: /^\/annotations\/.*/,
                     methods: ['GET', 'OPTIONS']
@@ -584,6 +592,13 @@ function main() {
         .options('/getlogging', expireshourly, async (req, res) => {
             res.send();
         })
+        .get('/webfonts/:font', async (req, res) => {
+            res.send(await fs.readFile(path.join('node_modules/@fortawesome/fontawesome-free/webfonts', req.params.font)));
+        })
+        .get('/fontawesome-free.min.css', async (req, res) => {
+            res.setHeader('Content-Type', 'text/css; charset=utf-8');
+            res.send(await fs.readFile('node_modules/@fortawesome/fontawesome-free/css/all.min.css'));
+        })
         .get('/getlogging/:library/:library_version/:arch/:dt', expireshourly, async (req, res) => {
             const logging = await buildlogging.getLogging(req.params.library, req.params.library_version, req.params.arch.trim(), req.params.dt);
 
@@ -606,6 +621,16 @@ function main() {
             } else {
                 res.sendStatus(404);
             }
+        })
+        .use('/cpp_library_build_results/:library/:library_version/:commit_hash', async (req, res) => {
+            const view = new CppBuildResultsView(
+                buildlogging,
+                new RemoteAnnotations(conanserverurl),
+                getConanBinaries,
+                compilernames,
+                compilersemvers
+            );
+            res.send(await view.get(req.params.library, req.params.library_version, req.params.commit_hash, req.query.allcompilers === '1'));
         })
         .use('/v1', (req, res, next) => {
             req.url = `/v1${req.url}`;

@@ -13,6 +13,13 @@ body {
     }
 }
 
+td.success:has(.fa-check) {
+    color: lime;
+}
+
+td.success:has(.fa-x) {
+    color: red;
+}
 
 a.libraryversion {
     padding-right: 10px;
