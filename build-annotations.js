@@ -3,6 +3,29 @@ const
     fsconstants = require('fs').constants,
     ini = require('ini');
 
+class RemoteAnnotations {
+    constructor(conanserverurl) {
+        this.conanserverurl = conanserverurl;
+    }
+
+    async readAnnotations(library, version, buildhash) {
+        try {
+            // eslint-disable-next-line no-undef
+            const response = await fetch(this.conanserverurl + `/annotations/${library}/${version}/${buildhash}`);
+
+            if (response.status !== 200) {
+                return {};
+            }
+
+            return await response.json();
+        } catch(err) {
+            return {
+                error: "error"
+            };
+        }
+    }
+}
+
 class BuildAnnotations {
     constructor(conanserverroot) {
         this.conanserverroot = conanserverroot;
@@ -98,5 +121,6 @@ class BuildAnnotations {
 }
 
 module.exports = {
-    BuildAnnotations
+    BuildAnnotations,
+    RemoteAnnotations
 };

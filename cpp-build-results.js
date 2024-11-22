@@ -1,0 +1,193 @@
+const
+    pug = require('pug'),
+    { BuildLogging } = require('./build-logging'),
+    { BuildAnnotations } = require('./build-annotations'),
+    _ = require('underscore');
+
+const {DynamoDBClient, ScanCommand} = require ('@aws-sdk/client-dynamodb');
+
+class CppBuildResultsView {
+    /**
+     * 
+     * @param {BuildLogging} logging 
+     * @param {BuildAnnotations} annotations
+     */
+    constructor(logging, annotations, conanfunc, compilernames, compilersemvers) {
+        this.results_view = pug.compileFile('views/library_build_results.pug');
+
+        this.logging = logging;
+        this.annotations = annotations;
+        this.conanfunc = conanfunc;
+        this.compilernames = compilernames;
+        this.compilersemvers = compilersemvers;
+
+        this.ddbClient = new DynamoDBClient({region: 'us-east-1'});
+    }
+
+    extract_compiler_details(compiler_str) {
+        const compiler_arr = compiler_str.split('#');
+        const id = compiler_arr[1];
+        return {
+            compiler: compiler_arr[0],
+            compiler_version: id,
+            arch: compiler_arr[2],
+            libcxx: compiler_arr[3],
+            compiler_name: this.compilernames[id],
+            compiler_semver: this.compilersemvers[id],
+        };
+    }
+
+    async get(library, library_version, commit_hash, show_all_compilers) {
+        const lib_key = `${library}#${library_version}#${commit_hash}`;
+
+        const scanCommand = new ScanCommand({
+            TableName: 'library-build-history',
+            ProjectionExpression: 'compiler,success',
+            FilterExpression: '#library=:lib_key',
+            ExpressionAttributeNames: {
+                '#library': 'library',
+            },
+            ExpressionAttributeValues: {
+                ':lib_key': {
+                    S: lib_key,
+                },
+            },
+        });
+
+        const scan_result = await this.ddbClient.send(scanCommand);
+
+        const compilers_with_results = _.map(scan_result.Items, (item) => {
+            return {
+                ...this.extract_compiler_details(item.compiler.S),
+                success: item.success.BOOL ? 'ok' : 'failed',
+            }
+        });
+
+        compilers_with_results.sort((a, b) => a.compiler_version > b.compiler_version);
+
+        return await this.results_view({
+            lib: {
+                commit_url: `https://github.com/fmtlib/fmt/commit/${commit_hash}`,
+                commit_hash: commit_hash,
+                name: `${library} ${library_version}`,
+            },
+            view: {
+                show_all_compilers
+            },
+            compilers: compilers_with_results,
+        });
+    }
+
+    // async get(library, library_version, commit_hash, show_all_compilers) {
+    //     const compilers = await this.logging.listPossibleCompilers();
+    //     const results = await this.logging.getBuildResultsForCommit(library, library_version, commit_hash);
+
+    //     const binaries = await this.conanfunc(library, library_version);
+
+    //     const compilers_with_results_prom = compilers.map(async (compiler) => {
+    //         const found = results.find((result) => 
+    //             result.compiler === compiler.compiler && result.compiler_version === compiler.compiler_version && result.arch === compiler.arch && result.libcxx === compiler.libcxx);
+
+    //         const comp = this.compilernames[compiler.compiler_version];
+    //         let compiler_name = comp;
+    //         if (!compiler_name) {
+    //             compiler_name = compiler.compiler_version;
+    //         }
+    //         compiler_name = compiler_name.replaceAll('-', '_');
+
+    //         if (found) {
+    //             const statustext = found.success ? 'ok' : 'failed';
+    //             const statuscolor = found.success ? 'green' : 'red';
+
+    //             return {
+    //                 ...compiler,
+    //                 compiler_name,
+    //                 success: statustext,
+    //                 static_badge_link: `https://img.shields.io/badge/${compiler_name}-${statustext}-${statuscolor}`,
+    //                 buildhash: ''
+    //             };
+    //         } else {
+    //             const bins = binaries.perCompiler[compiler.compiler_version];
+    //             if (bins) {
+    //                 const foundIdx = binaries.possibleCombinations.findIndex((result) =>
+    //                     result.arch === compiler.arch && result['compiler.libcxx'] === compiler.libcxx
+    //                 );
+
+    //                 if (foundIdx >= 0) {
+    //                     const comboIdx = bins.combinations.findIndex(comboid => comboid === foundIdx);
+    //                     if (comboIdx >= 0) {
+    //                         const buildhash = bins.hashes[comboIdx];
+
+    //                         const anno = await this.annotations.readAnnotations(library, library_version, buildhash);
+    //                         if (commit_hash === anno.commithash) {
+    //                             const statustext = 'ok';
+    //                             const statuscolor = 'green';
+    //                             return {
+    //                                 ...compiler,
+    //                                 compiler_name,
+    //                                 success: statustext,
+    //                                 static_badge_link: `https://img.shields.io/badge/${compiler_name}-${statustext}-${statuscolor}`,
+    //                                 buildhash: buildhash
+    //                             };
+    //                         }
+    //                     }
+    //                 }
+
+    //                 const statustext = 'unknown';
+    //                 const statuscolor = 'orange';
+    //                 return {
+    //                     ...compiler,
+    //                     compiler_name,
+    //                     success: statustext,
+    //                     static_badge_link: '',
+    //                     buildhash: ''
+    //                 };
+    //             }
+    //             return {...compiler, success: '?', buildhash: ''};
+    //         }
+    //     });
+
+    //     let compilers_with_results = await Promise.all(compilers_with_results_prom);
+    //     if (!show_all_compilers) {
+    //         compilers_with_results = _.filter(compilers_with_results, (result) => result.static_badge_link);
+    //     }
+
+    //     for (const result of compilers_with_results) {
+    //         const lib_key = `${library}#${library_version}#${commit_hash}`;
+    //         const compiler_key = `${result.compiler}#${result.compiler_version}#${result.arch}#${result.libcxx}`;
+
+    //         const putCommand = new PutItemCommand({
+    //             TableName: 'library-build-history',
+    //             Item: {
+    //                 library: {
+    //                     S: lib_key,
+    //                 },
+    //                 compiler: {
+    //                     S: compiler_key,
+    //                 },
+    //                 success: {
+    //                     BOOL: result.success === 'ok',
+    //                 }
+    //             },
+    //         });
+    //         await this.ddbClient.send(putCommand);
+    //     }
+
+    //     return await this.results_view({
+    //         lib: {
+    //             commit_url: `https://github.com/fmtlib/fmt/commit/${commit_hash}`,
+    //             commit_hash: commit_hash,
+    //             name: library,
+    //         },
+    //         view: {
+    //             show_all_compilers
+    //         },
+    //         compilers: compilers_with_results,
+    //         results: results,
+    //     });
+    // }
+};
+
+module.exports = {
+    CppBuildResultsView
+};
