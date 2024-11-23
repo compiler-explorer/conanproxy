@@ -358,7 +358,8 @@ function main() {
                 '/hasfailedbefore',
                 '/whathasfailedbefore',
                 '/allfailedbuilds',
-                /^\/getlogging\/[0-9]*/,
+                /^\/getlogging\/.*/,
+                /^\/getlogging_forcommit\/.*/,
                 /^\/binaries\/.*/,
                 /^\/downloadcshared\/.*/,
                 /^\/downloadpkg\/.*/,
@@ -589,15 +590,15 @@ function main() {
             const builds = await buildlogging.listBuilds();
             res.send(builds);
         })
-        .options('/getlogging', expireshourly, async (req, res) => {
-            res.send();
-        })
         .get('/webfonts/:font', async (req, res) => {
             res.send(await fs.readFile(path.join('node_modules/@fortawesome/fontawesome-free/webfonts', req.params.font)));
         })
         .get('/fontawesome-free.min.css', async (req, res) => {
             res.setHeader('Content-Type', 'text/css; charset=utf-8');
             res.send(await fs.readFile('node_modules/@fortawesome/fontawesome-free/css/all.min.css'));
+        })
+        .options('/getlogging', expireshourly, async (req, res) => {
+            res.send();
         })
         .get('/getlogging/:library/:library_version/:arch/:dt', expireshourly, async (req, res) => {
             const logging = await buildlogging.getLogging(req.params.library, req.params.library_version, req.params.arch.trim(), req.params.dt);
@@ -615,6 +616,34 @@ function main() {
                 } else if (entry && entry.library && entry.library_version && entry.compiler_version && entry.build_dt && entry.logging) {
                     const filename = entry.library + "_" + entry.library_version + "_" + entry.compiler_version + "_" + entry.build_dt + ".txt";
                     res.header('Content-Disposition', 'attachment; filename="' + filename +'"').send(entry.logging);
+                } else {
+                    res.sendStatus(404);
+                }
+            } else {
+                res.sendStatus(404);
+            }
+        })
+        .options('/getlogging_forcommit', expireshourly, async (req, res) => {
+            res.send();
+        })
+        .get('/getlogging_forcommit/:library/:library_version/:commithash/:compiler_version/:arch/:libcxx', expireshourly, async (req, res) => {
+            const logging = await buildlogging.getLoggingForCommit(req.params.library, req.params.library_version, req.params.commithash,
+                req.params.compiler_version, req.params.arch.trim(), req.params.libcxx.trim());
+
+            if (logging) {
+                const entry = logging[0];
+
+                if (logging.length >= 1) {
+                    const filename = `${entry.library}_${entry.library_version}_${entry.commithash}` +
+                        `_${entry.compiler_version}_${entry.arch}_${entry.libcxx}_${entry.build_dt}.txt`;
+                    let content = '';
+                    for (const item of logging) {
+                        content = content + item.logging;
+                        if (logging.length > 1) {
+                            content = content + '\n\n--- More entries ---\n\n';
+                        }
+                    }
+                    res.header('Content-Disposition', 'attachment; filename="' + filename +'"').send(content);
                 } else {
                     res.sendStatus(404);
                 }

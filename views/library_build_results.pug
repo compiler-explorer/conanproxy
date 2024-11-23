@@ -37,10 +37,20 @@ block prepend content
                     td #{compiler.arch}
                     td #{compiler.libcxx}
                     td(class="success")
-                        if compiler.success == 'ok'
-                            i(class='fa-solid fa-check')
-                        if compiler.success == 'failed'
-                            i(class='fa-solid fa-x')
+                        span(style='display: inline-block; width: 25px')
+                            if compiler.success == 'ok'
+                                i(class='fa-solid fa-check')
+                            if compiler.success == 'failed'
+                                i(class='fa-solid fa-x')
+                        if compiler.logging_url
+                            span(style='display: inline-block; width: 25px')
+                                a(href=compiler.logging_url target='_blank')
+                                    i(class='fa-solid fa-file-text')
+                        if compiler.package_url 
+                            span(style='display: inline-block; width: 25px')
+                                a(href=compiler.package_url target='_blank')
+                                    i(class='fa-solid fa-paperclip')
+
     script
         | if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         |     document.querySelectorAll('.table-striped').forEach(table => {

@@ -145,6 +145,28 @@ class BuildLogging {
         return results;
     }
 
+    async getLoggingForCommit(library, library_version, commithash, compiler_version, arch, libcxx) {
+        const stmt = await this.connection.prepare(
+            `select library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, success, build_dt, logging
+                 from latest
+                where library=@library and library_version=@library_version and commithash=@commithash
+                  and compiler_version=@compiler_version and arch=@arch and libcxx=@libcxx`
+        );
+
+        await stmt.bind({
+            '@library': library,
+            '@library_version': library_version,
+            '@commithash': commithash,
+            '@compiler_version': compiler_version,
+            '@arch': arch,
+            '@libcxx': libcxx
+        });
+
+        const results = await stmt.all();
+
+        return results;
+    }
+
     async getCompilerFailureRates() {
         const stmt = await this.connection.prepare(
             `select compiler_version, count(*) failures

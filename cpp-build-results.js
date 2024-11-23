@@ -64,10 +64,28 @@ class CppBuildResultsView {
         const lib_key = this.create_library_key(library, library_version, commit_hash);
         const scan_result = await this.list_all_results(lib_key);
 
+        const latest_results = await this.logging.getBuildResultsForCommit(library, library_version, commit_hash);
+
+        const has_logging = (compiler_version, arch, libcxx) => {
+            return !!latest_results.find((res) => res.compiler_version === compiler_version && res.arch === arch && res.libcxx === libcxx);
+        };
+
         const compilers_with_results = _.map(scan_result.Items, (item) => {
+            const compiler_details = this.extract_compiler_details(item.compiler.S);
+            let logging_url = '';
+            let package_url = '';
+            if (!item.success.BOOL && has_logging(compiler_details.compiler_version, compiler_details.arch, compiler_details.libcxx)) {
+                logging_url = `/getlogging_forcommit/${library}/${library_version}/${commit_hash}/${compiler_details.compiler_version}/${compiler_details.arch || ' '}/${compiler_details.libcxx || ' '}`;
+            } else if (item.success.BOOL) {
+                // TODO: requires new API call downloadpkg specifically for arch+libcxx
+                // TODO: how to make sure user knows this is the latest package and might not be for this commit?
+                package_url = '';
+            }
+
             return {
-                ...this.extract_compiler_details(item.compiler.S),
+                ...compiler_details,
                 success: item.success.BOOL ? 'ok' : 'failed',
+                logging_url,
             }
         });
 
