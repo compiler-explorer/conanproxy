@@ -77,15 +77,15 @@ class CppBuildResultsView {
             if (!item.success.BOOL && has_logging(compiler_details.compiler_version, compiler_details.arch, compiler_details.libcxx)) {
                 logging_url = `/getlogging_forcommit/${library}/${library_version}/${commit_hash}/${compiler_details.compiler_version}/${compiler_details.arch || ' '}/${compiler_details.libcxx || ' '}`;
             } else if (item.success.BOOL) {
-                // TODO: requires new API call downloadpkg specifically for arch+libcxx
                 // TODO: how to make sure user knows this is the latest package and might not be for this commit?
-                package_url = '';
+                package_url = `/downloadpkg/${library}/${library_version}/${compiler_details.compiler_version}/${compiler_details.arch || ' '}/${compiler_details.libcxx || ' '}`;
             }
 
             return {
                 ...compiler_details,
                 success: item.success.BOOL ? 'ok' : 'failed',
                 logging_url,
+                package_url,
             }
         });
 

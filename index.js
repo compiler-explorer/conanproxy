@@ -494,6 +494,37 @@ function main() {
                 res.send(e);
             }
         })
+        .options('/downloadpkg/:library/:library_version/:compiler_version/:arch/:libcxx', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/downloadpkg/:library/:library_version/:compiler_version/:arch/:libcxx', libraryexpireheaders, async (req, res) => {
+            let found = false;
+            try {
+                const all = await getConanBinaries(req.params.library, req.params.library_version);
+                const compiler = all.perCompiler[req.params.compiler_version];
+                const combinationIdx = all.possibleCombinations.findIndex((combo) =>
+                    combo.arch === req.params.arch.trim() &&
+                    combo['compiler.libcxx'] === req.params.libcxx.trim());
+
+                if (combinationIdx !== -1 && compiler) {
+
+                    const hashIdx = compiler.combinations.indexOf(combinationIdx);
+                    if (hashIdx !== -1) {
+                        const hash = compiler.hashes[hashIdx];
+                        const url = await getPackageUrl(req.params.library, req.params.library_version, hash);
+                        if (url && url['conan_package.tgz']) {
+                            found = true;
+                            res.redirect(302, url['conan_package.tgz']);
+                        }
+                    }
+                }
+
+                if (!found) res.sendStatus(404);
+            } catch (e) {
+                console.error(e);
+                res.send(e);
+            }
+        })
         .get('/annotations/:libraryid/:version/:buildhash', expireshourly, async (req, res) => {
             const data = await annotations.readAnnotations(req.params.libraryid, req.params.version, req.params.buildhash);
             res.send(data);
