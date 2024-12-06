@@ -358,6 +358,7 @@ function main() {
                 '/hasfailedbefore',
                 '/whathasfailedbefore',
                 '/allfailedbuilds',
+                '/gh-commits.js',
                 /^\/getlogging\/.*/,
                 /^\/getlogging_forcommit\/.*/,
                 /^\/binaries\/.*/,
