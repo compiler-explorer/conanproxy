@@ -54,9 +54,22 @@ block prepend content
                                 a(href=compiler.package_url target='_blank')
                                     i(class='fa-solid fa-paperclip')
 
+    div
+        h3 more commits
+
+        ul(class="more-commits")
+
     script
         | if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         |     document.querySelectorAll('.table-striped').forEach(table => {
         |         table.classList.add('table-dark');
         |     });
         | }
+    script
+        | window.repo_owner = "fmtlib";
+        | window.repo_name = "fmt"
+        | window.lib_name = "#{lib.name}";
+        | window.lib_version = "#{lib.version}";
+    script(src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous")
+
+    script(type="module" src="/gh-commits.js")

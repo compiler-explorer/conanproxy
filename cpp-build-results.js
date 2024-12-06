@@ -103,11 +103,17 @@ class CppBuildResultsView {
         const clang_semvers = succeeded_compilers.filter(result => result.compiler === 'clang').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
         const min_clang_ver = _.first(semver.sort(clang_semvers));
 
+        const repo_owner = "fmtlib";
+        const repo_name = "fmt";
+
         return await this.results_view({
             lib: {
-                commit_url: `https://github.com/fmtlib/fmt/commit/${commit_hash}`,
+                commit_url: `https://github.com/${repo_owner}/${repo_name}/commit/${commit_hash}`,
                 commit_hash: commit_hash,
-                name: `${library} ${library_version}`,
+                repo_owner,
+                repo_name,
+                name: `${library}`,
+                version: `${library_version}`
             },
             view: {
                 show_all_compilers
