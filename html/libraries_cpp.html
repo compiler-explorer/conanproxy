@@ -137,6 +137,8 @@
                             tdCombinationYesNo.addClass("table-success");
                             tdCombinationYesNo.html("");
 
+                            if (compiler.is_restricted) continue;
+
                             tdCombinationYesNo.data('hash', compiler.hashes[idxHash]);
 
                             const aMoreInfo = $("<button>More info</button>");

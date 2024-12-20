@@ -4,6 +4,7 @@ const
     { BuildAnnotations, RemoteAnnotations } = require('./build-annotations'),
     { BuildLogging } = require('./build-logging'),
     { CppBuildResultsView } = require('./cpp-build-results'),
+    { is_restricted_compiler } = require('./compiler-restrictions'),
     path = require('path'),
     express = require('express'),
     { expressjwt } = require('express-jwt'),
@@ -79,6 +80,7 @@ async function getConanBinaries(library, version) {
                             setPerCompiler[compilerid] = {
                                 name: compilername,
                                 compilertype: compilertype,
+                                is_restricted: is_restricted_compiler(compilerid, compilertype),
                                 combinations: [],
                                 hashes: []
                             };
@@ -480,6 +482,11 @@ function main() {
 
                     // note: only works if there's only 1 binary for the given compiler
                     if (id === req.params.compiler && compiler && compiler.hashes && compiler.hashes.length === 1) {
+                        if (is_restricted_compiler(id, compiler.compilertype)) {
+                            res.sendStatus(403);
+                            return;
+                        }
+
                         const hash = compiler.hashes[0];
                         const url = await getPackageUrl(req.params.libraryid, req.params.version, hash);
                         if (url && url['conan_package.tgz']) {
@@ -508,6 +515,10 @@ function main() {
                     combo['compiler.libcxx'] === req.params.libcxx.trim());
 
                 if (combinationIdx !== -1 && compiler) {
+                    if (is_restricted_compiler(req.params.compiler_version, compiler.compilertype)) {
+                        res.sendStatus(403);
+                        return;
+                    }
 
                     const hashIdx = compiler.combinations.indexOf(combinationIdx);
                     if (hashIdx !== -1) {
