@@ -137,7 +137,10 @@
                             tdCombinationYesNo.addClass("table-success");
                             tdCombinationYesNo.html("");
 
-                            if (compiler.is_restricted) continue;
+                            if (compiler.is_restricted) {
+                                tdCombinationYesNo.append(aMoreInfo);
+                                continue;
+                            }
 
                             tdCombinationYesNo.data('hash', compiler.hashes[idxHash]);
 
