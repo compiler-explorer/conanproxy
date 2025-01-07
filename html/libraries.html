@@ -108,6 +108,7 @@
 
                 info.possibleCombinations.forEach(combination => {
                     const td = $("<th class='binmatrixheaderoption' scope='col' />");
+                    td.append($("<div />").addClass("comboos").html(combination.os));
                     td.append($("<div />").addClass("comboarch").html(combination.arch));
                     td.append($("<div />").addClass("combobuildtype").html(combination.build_type));
                     td.append($("<div />").addClass("comboflags").html(combination.flagcollection));
