@@ -103,9 +103,19 @@ class CppBuildResultsView {
         const clang_semvers = succeeded_compilers.filter(result => result.compiler === 'clang').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
         const min_clang_ver = _.first(semver.sort(clang_semvers));
 
-        const repo_owner = "fmtlib";
-        const repo_name = "fmt";
-
+        const repo_owner = "";
+        const repo_name = "";
+        if (library === "fmt") {
+          repo_owner = "fmtlib";
+          repo_name = "fmt"
+        } else if (library === "beman_iterator_interface") {
+          repo_owner = "bemanproject";
+          repo_name = "iterator_interface"
+        } else {
+          repo_owner = "notsupported"
+          repo_name = "notsupported"
+        }
+    
         return await this.results_view({
             lib: {
                 commit_url: `https://github.com/${repo_owner}/${repo_name}/commit/${commit_hash}`,
