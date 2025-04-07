@@ -66,8 +66,15 @@ block prepend content
         |     });
         | }
     script
-        | window.repo_owner = "fmtlib";
-        | window.repo_name = "fmt"
+        | if ("#{lib.name}" === "fmt") {
+        |   window.repo_owner = "fmtlib";
+        |   window.repo_name = "fmt"
+        | } else if ("#{lib.name}" === "beman_iterator_interface") {
+        |   window.repo_owner = "bemanproject";
+        |   window.repo_name = "iterator_interface"
+        | } else {
+        |   console.log("Library not yet supported");
+        | }
         | window.lib_name = "#{lib.name}";
         | window.lib_version = "#{lib.version}";
     script(src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous")
