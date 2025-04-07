@@ -103,8 +103,8 @@ class CppBuildResultsView {
         const clang_semvers = succeeded_compilers.filter(result => result.compiler === 'clang').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
         const min_clang_ver = _.first(semver.sort(clang_semvers));
 
-        const repo_owner = "";
-        const repo_name = "";
+        let repo_owner = "";
+        let repo_name = "";
         if (library === "fmt") {
           repo_owner = "fmtlib";
           repo_name = "fmt"
