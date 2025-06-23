@@ -531,8 +531,9 @@ function main() {
                     }
                 }
 
+                // {"library":"zlib","library_version":"1.3.1","compiler_version":"clang_bb_p2996","arch":"x86_64","libcxx":"libc++"}
                 if (!found)
-                    res.send(req.params);
+                    res.send(all.possibleCombinations);
             } catch (e) {
                 console.error(e);
                 res.send(e);
