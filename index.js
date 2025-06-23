@@ -510,41 +510,36 @@ function main() {
             try {
                 const all = await getConanBinaries(req.params.library, req.params.library_version);
                 const compiler = all.perCompiler[req.params.compiler_version];
-                const combinationIdx = all.possibleCombinations.findIndex((combo) =>
-                    combo.arch === req.params.arch.trim() &&
-                    combo['compiler.libcxx'] === req.params.libcxx.trim());
+                const combinationIdxes = [];
+                for (let idx = 0; idx < all.possibleCombinations.length; idx++) {
+                    const combo = all.possibleCombinations[idx];
+                    if (combo.arch === req.params.arch.trim() &&
+                        combo['compiler.libcxx'] === req.params.libcxx.trim()) {
+                        combinationIdxes.push(idx);
+                    }
+                }
 
-                if (combinationIdx !== -1 && compiler) {
+                if (combinationIdxes.length > 0 && compiler) {
                     if (is_restricted_compiler(req.params.compiler_version, compiler.compilertype)) {
                         res.sendStatus(403);
                         return;
                     }
 
-                    const hashIdx = compiler.combinations.indexOf(combinationIdx);
-                    if (hashIdx !== -1) {
-                        const hash = compiler.hashes[hashIdx];
-                        const url = await getPackageUrl(req.params.library, req.params.library_version, hash);
-                        if (url && url['conan_package.tgz']) {
-                            found = true;
-                            res.redirect(302, url['conan_package.tgz']);
+                    for (let combinationIdx of combinationIdxes) {
+                        const hashIdx = compiler.combinations.indexOf(combinationIdx);
+                        if (hashIdx !== -1) {
+                            const hash = compiler.hashes[hashIdx];
+                            const url = await getPackageUrl(req.params.library, req.params.library_version, hash);
+                            if (url && url['conan_package.tgz']) {
+                                found = true;
+                                res.redirect(302, url['conan_package.tgz']);
+                            }
                         }
                     }
                 }
 
-                // {"library":"zlib","library_version":"1.3.1","compiler_version":"clang_bb_p2996","arch":"x86_64","libcxx":"libc++"}
-                // [{"arch":"x86","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"x86","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++2a"},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++2c"},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":"c++20"},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++20"},
-                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++26"}]
                 if (!found)
-                    res.send(all.perCompiler);
+                    res.send(404);
             } catch (e) {
                 console.error(e);
                 res.send(e);
