@@ -532,8 +532,19 @@ function main() {
                 }
 
                 // {"library":"zlib","library_version":"1.3.1","compiler_version":"clang_bb_p2996","arch":"x86_64","libcxx":"libc++"}
+                // [{"arch":"x86","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"x86","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":""},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++2a"},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++2c"},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libstdc++","flagcollection":"","os":"Linux","stdver":"c++20"},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++20"},
+                // {"arch":"x86_64","build_type":"Debug","compiler.libcxx":"libc++","flagcollection":"","os":"Linux","stdver":"c++26"}]
                 if (!found)
-                    res.send(all.possibleCombinations);
+                    res.send(all.perCompiler);
             } catch (e) {
                 console.error(e);
                 res.send(e);
