@@ -531,7 +531,8 @@ function main() {
                     }
                 }
 
-                if (!found) res.send(`library of arch ${arch} and libcxx ${libcxx} not found`);
+                if (!found)
+                    res.send(req.params);
             } catch (e) {
                 console.error(e);
                 res.send(e);
