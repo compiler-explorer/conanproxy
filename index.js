@@ -460,6 +460,7 @@ function main() {
                         if (url && url['conan_package.tgz']) {
                             found = true;
                             res.redirect(302, url['conan_package.tgz']);
+                            return;
                         }
                     }
                 }
@@ -492,6 +493,7 @@ function main() {
                         if (url && url['conan_package.tgz']) {
                             found = true;
                             res.redirect(302, url['conan_package.tgz']);
+                            return;
                         }
                     }
                 }
@@ -533,6 +535,7 @@ function main() {
                             if (url && url['conan_package.tgz']) {
                                 found = true;
                                 res.redirect(302, url['conan_package.tgz']);
+                                return;
                             }
                         }
                     }
