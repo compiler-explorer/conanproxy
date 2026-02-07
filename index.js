@@ -17,7 +17,7 @@ const
 const
     webServer = express();
 
-const conanserverurl = 'http://127.0.0.1:9300';
+const conanserverurl = process.env.CONANSERVERURL || 'http://127.0.0.1:9300';
 const ceserverurl = 'https://godbolt.org';
 
 const userhome = "/home/ce";
@@ -29,6 +29,7 @@ let compilersemvers = null;
 let allRustLibrariesAndVersions = null;
 let allCppLibrariesAndVersions = null;
 let allFortranLibrariesAndVersions = null;
+let allGoLibrariesAndVersions = null;
 
 let availableLibrariesAndVersions = {};
 let availableLibraryIds = [];
@@ -197,6 +198,18 @@ async function refreshCELibraries() {
             console.error(err);
             reject(err);
         });
+
+        https.get(`${ceserverurl}/api/libraries/go`, { headers: { Accept: 'application/json' } }, (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => data += chunk);
+            resp.on('end', () => {
+                allGoLibrariesAndVersions = JSON.parse(data);
+                resolve(true);
+            });
+        }).on('error', (err) => {
+            console.error(err);
+            reject(err);
+        });
     });
 }
 
@@ -252,7 +265,12 @@ async function refreshConanLibraries(forceall) {
                     language = 'rust';
                 } else {
                     ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
-                    if (ceLib) language = 'fortran';
+                    if (ceLib) {
+                        language = 'fortran';
+                    } else {
+                        ceLib = _.find(allGoLibrariesAndVersions, (lib) => lib.id === libraryId);
+                        if (ceLib) language = 'go';
+                    }
                 }
             }
 
@@ -342,6 +360,7 @@ function main() {
                 '/libraries_rust.html',
                 '/libraries_cpp.html',
                 '/libraries_fortran.html',
+                '/libraries_go.html',
                 '/compilerfailurerates.html',
                 '/failedbuilds.html',
                 '/usage.html',
@@ -355,6 +374,7 @@ function main() {
                 '/libraries/cpp',
                 '/libraries/rust',
                 '/libraries/fortran',
+                '/libraries/go',
                 '/libraries',
                 '/compilerfailurerates',
                 '/hasfailedbefore',
@@ -423,6 +443,16 @@ function main() {
             const filteredlibs = {};
             _.each(availableLibrariesAndVersions, (lib, id) => {
                 if (lib.language === 'fortran') filteredlibs[id] = lib;
+            });
+            res.send(filteredlibs);
+        })
+        .options('/libraries/go', libraryexpireheaders, async (req, res) => {
+            res.send();
+        })
+        .get('/libraries/go', libraryexpireheaders, async (req, res) => {
+            const filteredlibs = {};
+            _.each(availableLibrariesAndVersions, (lib, id) => {
+                if (lib.language === 'go') filteredlibs[id] = lib;
             });
             res.send(filteredlibs);
         })
