@@ -233,19 +233,25 @@ async function refreshConanLibraries(forceall) {
             const libraryId = libraryDir.name;
             availableLibraryIds.push(libraryId);
             let language = 'cpp';
+            let ceLib;
 
-            let ceLib = _.find(allCppLibrariesAndVersions, (lib) => lib.id === libraryId);
-            if (!ceLib) {
-                ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
-                if (ceLib) {
-                    language = 'rust';
-                } else {
-                    ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
+            if (libraryId.startsWith('go_')) {
+                ceLib = _.find(allGoLibrariesAndVersions, (lib) => `go_${lib.id}` === libraryId);
+                if (ceLib) language = 'go';
+            } else {
+                ceLib = _.find(allCppLibrariesAndVersions, (lib) => lib.id === libraryId);
+                if (!ceLib) {
+                    ceLib = _.find(allRustLibrariesAndVersions, (lib) => lib.id === libraryId);
                     if (ceLib) {
-                        language = 'fortran';
+                        language = 'rust';
                     } else {
-                        ceLib = _.find(allGoLibrariesAndVersions, (lib) => lib.id === libraryId);
-                        if (ceLib) language = 'go';
+                        ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
+                        if (ceLib) {
+                            language = 'fortran';
+                        } else {
+                            ceLib = _.find(allGoLibrariesAndVersions, (lib) => lib.id === libraryId);
+                            if (ceLib) language = 'go';
+                        }
                     }
                 }
             }
