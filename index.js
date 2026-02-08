@@ -246,12 +246,7 @@ async function refreshConanLibraries(forceall) {
                         language = 'rust';
                     } else {
                         ceLib = _.find(allFortranLibrariesAndVersions, (lib) => lib.id === libraryId);
-                        if (ceLib) {
-                            language = 'fortran';
-                        } else {
-                            ceLib = _.find(allGoLibrariesAndVersions, (lib) => lib.id === libraryId);
-                            if (ceLib) language = 'go';
-                        }
+                        if (ceLib) language = 'fortran';
                     }
                 }
             }
