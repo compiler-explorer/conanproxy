@@ -161,56 +161,32 @@ async function refreshCECompilers() {
     });
 }
 
-async function refreshCELibraries() {
+function fetchCELibraries(language) {
     return new Promise((resolve, reject) => {
-        https.get(`${ceserverurl}/api/libraries/c++`, { headers: { Accept: 'application/json' } }, (resp) => {
+        https.get(`${ceserverurl}/api/libraries/${language}`, { headers: { Accept: 'application/json' } }, (resp) => {
             let data = '';
             resp.on('data', (chunk) => data += chunk);
             resp.on('end', () => {
-                allCppLibrariesAndVersions = JSON.parse(data);
-                resolve(true);
-            });
-        }).on('error', (err) => {
-            console.error(err);
-            reject(err);
-        });
-
-        https.get(`${ceserverurl}/api/libraries/rust`, { headers: { Accept: 'application/json' } }, (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => data += chunk);
-            resp.on('end', () => {
-                allRustLibrariesAndVersions = JSON.parse(data);
-                resolve(true);
-            });
-        }).on('error', (err) => {
-            console.error(err);
-            reject(err);
-        });
-
-        https.get(`${ceserverurl}/api/libraries/fortran`, { headers: { Accept: 'application/json' } }, (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => data += chunk);
-            resp.on('end', () => {
-                allFortranLibrariesAndVersions = JSON.parse(data);
-                resolve(true);
-            });
-        }).on('error', (err) => {
-            console.error(err);
-            reject(err);
-        });
-
-        https.get(`${ceserverurl}/api/libraries/go`, { headers: { Accept: 'application/json' } }, (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => data += chunk);
-            resp.on('end', () => {
-                allGoLibrariesAndVersions = JSON.parse(data);
-                resolve(true);
+                resolve(JSON.parse(data));
             });
         }).on('error', (err) => {
             console.error(err);
             reject(err);
         });
     });
+}
+
+async function refreshCELibraries() {
+    const [cpp, rust, fortran, go] = await Promise.all([
+        fetchCELibraries('c++'),
+        fetchCELibraries('rust'),
+        fetchCELibraries('fortran'),
+        fetchCELibraries('go'),
+    ]);
+    allCppLibrariesAndVersions = cpp;
+    allRustLibrariesAndVersions = rust;
+    allFortranLibrariesAndVersions = fortran;
+    allGoLibrariesAndVersions = go;
 }
 
 function newProxy() {
