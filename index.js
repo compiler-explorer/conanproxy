@@ -609,6 +609,14 @@ function main() {
             );
             res.send("OK");
         })
+        .post('/clearbuildstatusforlibrary', nocache, async (req, res) => {
+            const data = req.body;
+            buildlogging.clearBuildStatusForLibrary(
+                data.library,
+                data.library_version
+            );
+            res.send("OK");
+        })
         .get('/compilerfailurerates', expireshourly, async (req, res) => {
             const failurerates = await buildlogging.getCompilerFailureRates();
             res.send(failurerates);

@@ -65,6 +65,31 @@ class BuildLogging {
         await stmt.run();
     }
 
+    async clearBuildStatusForLibrary(library, library_version) {
+        let query;
+        let params;
+
+        if (library_version) {
+            query = `delete from latest
+                     where library=@library
+                       and library_version=@library_version`;
+            params = {
+                '@library': library,
+                '@library_version': library_version
+            };
+        } else {
+            query = `delete from latest
+                     where library=@library`;
+            params = {
+                '@library': library
+            };
+        }
+
+        const stmt = await this.connection.prepare(query);
+        await stmt.bind(params);
+        await stmt.run();
+    }
+
     async setBuildFailed(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags, logging, commithash) {
         const now = this.getCurrentDateStr();
 

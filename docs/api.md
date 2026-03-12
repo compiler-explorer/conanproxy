@@ -186,3 +186,23 @@ Payload example:
     "compiler_version": "g101"
 }
 ```
+
+
+### POST `/clearbuildstatusforlibrary`
+
+Clear build failure status for a library so builds will be re-attempted. Optionally filter by version.
+
+Payload example (clear all versions):
+```
+{
+    "library": "fmt"
+}
+```
+
+Payload example (clear specific version):
+```
+{
+    "library": "fmt",
+    "library_version": "10.0.0"
+}
+```
