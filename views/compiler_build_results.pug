@@ -1,0 +1,61 @@
+extends _layout.pug
+
+block prepend content
+    div(class='compiler')
+        div(class='compilername') Compiler:&nbsp;
+            | #{compiler.name}
+            if compiler.semver
+                |  (#{compiler.semver})
+        div(class='compilerid') Id:&nbsp;
+            | #{compiler.id}
+
+    div(class='summary')
+        div(class='totals') Success rate: #{summary.succeeded_cells} / #{summary.total_cells}
+        div(class='libtotals') Libraries built successfully: #{summary.distinct_libs_succeeded} / #{summary.distinct_libs_total}
+
+    div(class='caveats')
+        em * note that logging for failed builds is only available for the most recent commits and package downloads are always for the latest build
+
+    table(width="100%" class="table table-striped")
+        theader
+            tr(class="binmatrixheader")
+                th library
+                th version
+                th commit
+                each v in variants
+                    th
+                        if v.arch
+                            span #{v.arch}
+                        if v.arch && v.libcxx
+                            |  /
+                        if v.libcxx
+                            span #{v.libcxx}
+        tbody
+            each row in rows
+                tr
+                    td #{row.library}
+                    td #{row.library_version}
+                    td(title=row.commit_hash) #{row.commit_hash.substring(0, 10)}
+                    each cell in row.cells
+                        td(class="success")
+                            if cell
+                                span(style='display: inline-block; width: 25px')
+                                    if cell.success == 'ok'
+                                        i(class='fa-solid fa-check')
+                                    if cell.success == 'failed'
+                                        i(class='fa-solid fa-x')
+                                if cell.logging_url
+                                    span(style='display: inline-block; width: 25px')
+                                        a(href=cell.logging_url target='_blank')
+                                            i(class='fa-solid fa-file-text')
+                                if cell.package_url
+                                    span(style='display: inline-block; width: 25px')
+                                        a(href=cell.package_url target='_blank')
+                                            i(class='fa-solid fa-paperclip')
+
+    script
+        | if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        |     document.querySelectorAll('.table-striped').forEach(table => {
+        |         table.classList.add('table-dark');
+        |     });
+        | }

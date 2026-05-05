@@ -4,6 +4,7 @@ const
     { BuildAnnotations, RemoteAnnotations } = require('./build-annotations'),
     { BuildLogging } = require('./build-logging'),
     { CppBuildResultsView } = require('./cpp-build-results'),
+    { CppCompilerBuildResultsView, CompilerVariantsCache } = require('./cpp-compiler-build-results'),
     { is_restricted_compiler } = require('./compiler-restrictions'),
     path = require('path'),
     express = require('express'),
@@ -38,6 +39,10 @@ let modifiedDt = null;
 
 const annotations = new BuildAnnotations(conanserverroot);
 const buildlogging = new BuildLogging(buildlogspath);
+const compilerVariantsCache = new CompilerVariantsCache([
+    'fmt#10.0.0#10.0.0',
+    'zlib#1.3.1#1.3.1',
+]);
 const jwtsecret = process.env.CESECRET;
 const cepassword = process.env.CEPASSWORD;
 
@@ -364,6 +369,7 @@ function main() {
                 /^\/downloadcshared\/.*/,
                 /^\/downloadpkg\/.*/,
                 /^\/cpp_library_build_results\/.*/,
+                /^\/cpp_compiler_build_results\/.*/,
                 '/fontawesome-free.min.css',
                 /^\/webfonts\/.*/,
                 {
@@ -390,6 +396,7 @@ function main() {
             await refreshCECompilers();
             await refreshCELibraries();
             await refreshConanLibraries(true);
+            await compilerVariantsCache.refresh();
             modifiedDt = new Date();
             res.send('done');
         })
@@ -730,6 +737,10 @@ function main() {
             );
             res.send(await view.get(req.params.library, req.params.library_version, req.params.commit_hash, req.query.allcompilers === '1'));
         })
+        .use('/cpp_compiler_build_results/:compiler_id', async (req, res) => {
+            const view = new CppCompilerBuildResultsView(compilernames, compilersemvers, compilerVariantsCache);
+            res.send(await view.get(req.params.compiler_id));
+        })
         .use('/v1', (req, res, next) => {
             req.url = `/v1${req.url}`;
             proxy.web(req, res, { target: conanserverurl, changeOrigin: true }, e => {
@@ -752,4 +763,7 @@ function main() {
 
 buildlogging.connect().then(refreshCECompilers).then(refreshCELibraries).then(() => {
     return refreshConanLibraries(true);
-}).then(main);
+}).then(() => {
+    compilerVariantsCache.refresh().catch(e => console.error('compilerVariantsCache initial refresh failed:', e));
+    return main();
+});
