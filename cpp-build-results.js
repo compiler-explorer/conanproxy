@@ -5,7 +5,7 @@ const
     _ = require('underscore'),
     semver = require('semver');
 
-const {DynamoDBClient, ScanCommand} = require ('@aws-sdk/client-dynamodb');
+const {DynamoDBClient, ScanCommand, QueryCommand} = require ('@aws-sdk/client-dynamodb');
 
 class CppBuildResultsView {
     /**
@@ -43,21 +43,25 @@ class CppBuildResultsView {
     }
 
     async list_all_results(lib_key) {
-        const scanCommand = new ScanCommand({
-            TableName: 'library-build-history',
-            ProjectionExpression: 'compiler,success',
-            FilterExpression: '#library=:lib_key',
-            ExpressionAttributeNames: {
-                '#library': 'library',
-            },
-            ExpressionAttributeValues: {
-                ':lib_key': {
-                    S: lib_key,
+        const items = [];
+        let lastEvaluatedKey;
+        do {
+            const result = await this.ddbClient.send(new QueryCommand({
+                TableName: 'library-build-history',
+                ProjectionExpression: 'compiler,success',
+                KeyConditionExpression: '#library = :lib_key',
+                ExpressionAttributeNames: {
+                    '#library': 'library',
                 },
-            },
-        });
-
-        return this.ddbClient.send(scanCommand);
+                ExpressionAttributeValues: {
+                    ':lib_key': {S: lib_key},
+                },
+                ExclusiveStartKey: lastEvaluatedKey,
+            }));
+            items.push(...(result.Items || []));
+            lastEvaluatedKey = result.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+        return {Items: items};
     }
 
     async get(library, library_version, commit_hash, show_all_compilers) {
