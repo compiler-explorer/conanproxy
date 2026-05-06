@@ -203,6 +203,24 @@ class BuildLogging {
         return results;
     }
 
+    async getFailedBuildsForLibrary(library, library_version) {
+        const stmt = await this.connection.prepare(
+            `select compiler, compiler_version, arch, libcxx, compiler_flags, commithash
+                 from latest
+                where library=@library
+                  and library_version=@library_version
+                  and success=0`
+        );
+
+        await stmt.bind({
+            '@library': library,
+            '@library_version': library_version
+        });
+
+        const results = await stmt.all();
+        return results;
+    }
+
     async hasFailedBefore(library, library_version, compiler, compiler_version, arch, libcxx, compiler_flags) {
         const stmt = await this.connection.prepare(
             `select success, commithash

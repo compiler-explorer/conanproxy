@@ -363,6 +363,7 @@ function main() {
                 '/whathasfailedbefore',
                 '/allfailedbuilds',
                 '/gh-commits.js',
+                /^\/failedbuilds\/.*/,
                 /^\/getlogging\/.*/,
                 /^\/getlogging_forcommit\/.*/,
                 /^\/binaries\/.*/,
@@ -664,6 +665,16 @@ function main() {
         })
         .get('/allfailedbuilds', expireshourly, async (req, res) => {
             const builds = await buildlogging.listBuilds();
+            res.send(builds);
+        })
+        .options('/failedbuilds/:library/:library_version', expireshourly, async (req, res) => {
+            res.send();
+        })
+        .get('/failedbuilds/:library/:library_version', expireshourly, async (req, res) => {
+            const builds = await buildlogging.getFailedBuildsForLibrary(
+                req.params.library,
+                req.params.library_version
+            );
             res.send(builds);
         })
         .get('/webfonts/:font', async (req, res) => {
