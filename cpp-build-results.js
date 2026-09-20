@@ -10,10 +10,11 @@ const {DynamoDBClient, ScanCommand, QueryCommand} = require ('@aws-sdk/client-dy
 class CppBuildResultsView {
     /**
      * 
-     * @param {BuildLogging} logging 
+     * @param {BuildLogging} logging
      * @param {BuildAnnotations} annotations
+     * @param {LibraryRepos} libraryrepos
      */
-    constructor(logging, annotations, conanfunc, compilernames, compilersemvers) {
+    constructor(logging, annotations, conanfunc, compilernames, compilersemvers, libraryrepos) {
         this.results_view = pug.compileFile('views/library_build_results.pug');
 
         this.logging = logging;
@@ -21,6 +22,7 @@ class CppBuildResultsView {
         this.conanfunc = conanfunc;
         this.compilernames = compilernames;
         this.compilersemvers = compilersemvers;
+        this.libraryrepos = libraryrepos;
 
         this.ddbClient = new DynamoDBClient({region: 'us-east-1'});
     }
@@ -107,25 +109,15 @@ class CppBuildResultsView {
         const clang_semvers = succeeded_compilers.filter(result => result.compiler === 'clang').map(result => semver.parse(result.compiler_semver)).filter(Boolean);
         const min_clang_ver = _.first(semver.sort(clang_semvers));
 
-        let repo_owner = "";
-        let repo_name = "";
-        if (library === "fmt") {
-          repo_owner = "fmtlib";
-          repo_name = "fmt"
-        } else if (library === "beman_iterator_interface") {
-          repo_owner = "bemanproject";
-          repo_name = "iterator_interface"
-        } else {
-          repo_owner = "notsupported"
-          repo_name = "notsupported"
-        }
-    
+        const repo = this.libraryrepos ? this.libraryrepos.get('c++', library, library_version) : null;
+
         return await this.results_view({
             lib: {
-                commit_url: `https://github.com/${repo_owner}/${repo_name}/commit/${commit_hash}`,
+                commit_url: repo ? `${repo.commit_url_prefix}${commit_hash}` : '',
                 commit_hash: commit_hash,
-                repo_owner,
-                repo_name,
+                repo_owner: repo ? repo.owner : '',
+                repo_name: repo ? repo.name : '',
+                repo_host: repo ? repo.host : '',
                 name: `${library}`,
                 version: `${library_version}`
             },
