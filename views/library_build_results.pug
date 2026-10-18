@@ -5,7 +5,10 @@ block prepend content
         div(class='libname') Library:&nbsp;
             | #{lib.name} #{lib.version}
         div(class='commit') Commit:&nbsp;
-            a(href=lib.commit_url) #{lib.commit_hash}
+            if lib.commit_url
+                a(href=lib.commit_url) #{lib.commit_hash}
+            else
+                span #{lib.commit_hash}
 
     div(class='summary')
         div(class='totals') Success rate: #{summary.succeeded} / #{summary.total}
@@ -54,10 +57,15 @@ block prepend content
                                 a(href=compiler.package_url target='_blank')
                                     i(class='fa-solid fa-paperclip')
 
-    div
-        h3 more commits
+    if lib.repo_host == 'github'
+        div
+            h3 more commits
 
-        ul(class="more-commits")
+            ul(class="more-commits"
+                data-repo-owner=lib.repo_owner
+                data-repo-name=lib.repo_name
+                data-lib-name=lib.name
+                data-lib-version=lib.version)
 
     script
         | if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -65,18 +73,8 @@ block prepend content
         |         table.classList.add('table-dark');
         |     });
         | }
-    script
-        | if ("#{lib.name}" === "fmt") {
-        |   window.repo_owner = "fmtlib";
-        |   window.repo_name = "fmt"
-        | } else if ("#{lib.name}" === "beman_iterator_interface") {
-        |   window.repo_owner = "bemanproject";
-        |   window.repo_name = "iterator_interface"
-        | } else {
-        |   console.log("Library not yet supported");
-        | }
-        | window.lib_name = "#{lib.name}";
-        | window.lib_version = "#{lib.version}";
-    script(src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous")
 
-    script(type="module" src="/gh-commits.js")
+    if lib.repo_host == 'github'
+        script(src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous")
+
+        script(type="module" src="/gh-commits.js")

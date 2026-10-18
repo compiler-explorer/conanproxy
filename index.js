@@ -6,6 +6,7 @@ const
     { CppBuildResultsView } = require('./cpp-build-results'),
     { CppCompilerBuildResultsView, CompilerVariantsCache } = require('./cpp-compiler-build-results'),
     { is_restricted_compiler } = require('./compiler-restrictions'),
+    { LibraryRepos } = require('./library-repos'),
     path = require('path'),
     express = require('express'),
     { expressjwt } = require('express-jwt'),
@@ -39,6 +40,7 @@ let modifiedDt = null;
 
 const annotations = new BuildAnnotations(conanserverroot);
 const buildlogging = new BuildLogging(buildlogspath);
+const libraryRepos = new LibraryRepos();
 const compilerVariantsCache = new CompilerVariantsCache([
     'fmt#10.0.0#10.0.0',
     'zlib#1.3.1#1.3.1',
@@ -192,6 +194,15 @@ async function refreshCELibraries() {
     allRustLibrariesAndVersions = rust;
     allFortranLibrariesAndVersions = fortran;
     allGoLibrariesAndVersions = go;
+}
+
+// A stale repo map only costs us a missing link, so never let this take the server down.
+async function refreshLibraryRepos() {
+    try {
+        await libraryRepos.refresh();
+    } catch (e) {
+        console.error('libraryRepos refresh failed:', e);
+    }
 }
 
 function newProxy() {
@@ -397,6 +408,7 @@ function main() {
             await refreshCECompilers();
             await refreshCELibraries();
             await refreshConanLibraries(true);
+            await refreshLibraryRepos();
             await compilerVariantsCache.refresh();
             modifiedDt = new Date();
             res.send('done');
@@ -557,7 +569,7 @@ function main() {
                 }
 
                 if (!found)
-                    res.send(404);
+                    res.sendStatus(404);
             } catch (e) {
                 console.error(e);
                 res.send(e);
@@ -744,7 +756,8 @@ function main() {
                 new RemoteAnnotations(conanserverurl),
                 getConanBinaries,
                 compilernames,
-                compilersemvers
+                compilersemvers,
+                libraryRepos
             );
             res.send(await view.get(req.params.library, req.params.library_version, req.params.commit_hash, req.query.allcompilers === '1'));
         })
@@ -774,7 +787,7 @@ function main() {
 
 buildlogging.connect().then(refreshCECompilers).then(refreshCELibraries).then(() => {
     return refreshConanLibraries(true);
-}).then(() => {
+}).then(refreshLibraryRepos).then(() => {
     compilerVariantsCache.refresh().catch(e => console.error('compilerVariantsCache initial refresh failed:', e));
     return main();
 });
